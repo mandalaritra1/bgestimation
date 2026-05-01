@@ -9,12 +9,14 @@
     "REGIONS": {
         "Cen2024Pass": {
             "PROCESSES": [
+                "signalRSGluon4000",
                 "TTbar_2024"
             ],
             "BINNING": "default"
         },
         "Cen2024Fail": {
             "PROCESSES": [
+                "signalRSGluon4000",
                 "TTbar_2024"
             ],
             "BINNING": "default"
@@ -36,6 +38,15 @@
             "COLOR": 2,
             "TYPE": "BKG",
             "TITLE": "t#bar{t}",
+            "LOC": "path/FILE:HIST"
+        },
+        "signalRSGluon4000": {
+            "SYSTEMATICS": [],
+            "SCALE": 1.0,
+            "COLOR": 4,
+            "TYPE": "SIGNAL",
+            "TITLE": "RSGluon 4 TeV",
+            "ALIAS": "signal_2024",
             "LOC": "path/FILE:HIST"
         }
     },

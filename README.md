@@ -47,13 +47,15 @@ Required files:
 ```bash
 data_2024.root
 TTbar_2024.root
+signal_2024.root
 ```
 
 The 2024 configs use the nominal histograms
 `MttvsMtCen2024Pass`, `MttvsMtCen2024Fail`, `MttvsMtFwd2024Pass`,
 and `MttvsMtFwd2024Fail`. They intentionally do not include Run-2
-systematic variations. A future `signal_2024.root` can be added for signal
-limits, but it is not required for the first background-only fit.
+systematic variations. `signal_2024.root` is used as the nominal
+`signalRSGluon4000` template so Combine receives a standard signal-plus-background
+datacard.
 
 
 ## **Running Fits**
@@ -67,7 +69,7 @@ This will execute the ttbar.py script for different scenarios. You can choose to
 
 Fit results for a given category will be stored under the "output/" directory.
 
-For the 2024 nominal background-only pass, run:
+For the 2024 nominal signal-plus-background pass, run:
 
 ```bash
 source run_fit_2024.sh
