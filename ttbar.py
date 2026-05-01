@@ -29,8 +29,11 @@ path = args.input
 tf = args.tf
 study = args.study
 output_dir = args.output
-json_file='jsons/config/ttbar_'+str(cat)+'.json'
-print ('json_file is', json_file)
+config_template='jsons/config/ttbar_'+str(cat)+'.json'
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+json_file=output_dir+'/runConfig_'+str(cat)+'.json'
+print ('json_file is', config_template)
 print ('senario is ', senario)
 
 
@@ -49,12 +52,18 @@ def load_signals_from_json(json_signals, senario):
 signals = load_signals_from_json('jsons/signals.json', senario)
 
 
-with open(json_file, 'r') as file:
+with open(config_template, 'r') as file:
     data = json.load(file, object_pairs_hook=OrderedDict)
 
 
 if 'GLOBAL' in data :
-	data['GLOBAL']['path'] = path
+    data['GLOBAL']['path'] = path
+    uses_signame = False
+    for region in data.get('REGIONS', {}).values():
+        for process in region.get('PROCESSES', []):
+            if 'SIGNAME' in process:
+                uses_signame = True
+    if uses_signame:
         data['GLOBAL']['SIGNAME']= signals
   
 with open(json_file, 'w') as file:
@@ -88,8 +97,6 @@ if study == 'ftest' :
 else : 
    params = get_transfer_function(cat)
  
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 savedirname = output_dir+'/ttbarfits_'+cat+'_'+dname+params
 
 print 'saving to {0}'.format(savedirname)
@@ -340,6 +347,33 @@ def ML_fit(signal):
     
     with open("fitparams.json", "w") as outfile: 
         json.dump(fitparams, outfile)
+
+def ML_fit_background():
+    '''
+    Run a nominal background-only fit. This is intended for the first Run-3
+    2024 pass, where the signal template may not exist yet.
+    '''
+    twoD = TwoDAlphabet(savedirname,json_file, loadPrevious=True)
+    subset = twoD.ledger
+    subtag = 'background_area'
+
+    twoD.MakeCard(subset, subtag)
+    twoD.MLfit(subtag,rMin=rmin,rMax=rmax,verbosity=0,extra=extra)
+
+    print 'twoD.GetParamsOnMatch()'
+    fitparams = twoD.GetParamsOnMatch(regex='', subtag=subtag, b_or_s='b')
+    if 'ttbar_xsec' in fitparams:
+        print 'ttbar_xsec', fitparams['ttbar_xsec']
+
+    with open("fitparams_background.json", "w") as outfile:
+        json.dump(fitparams, outfile)
+
+def plot_fit_background():
+    '''
+    Plots the nominal background-only fit from ML_fit_background().
+    '''
+    twoD = TwoDAlphabet(savedirname, json_file , loadPrevious=True)
+    twoD.StdPlots('background_area', twoD.ledger)
     
 def plot_fit(signal):
     '''
@@ -406,16 +440,16 @@ def GoF(signal, tf='', nToys=100, condor=False):
             'signal{}_area'.format(signal), ntoys=nToys, freezeSignal=0,
             condor=False
         )
-	# Once finished, we can plot the results immediately from the output rootfile.
-	plot_GoF(signal, tf, condor)
+        # Once finished, we can plot the results immediately from the output rootfile.
+        plot_GoF(signal, tf, condor)
     else:
-	# 500 (default) toys, split across 50 condor jobs
+        # 500 (default) toys, split across 50 condor jobs
         twoD.GoodnessOfFit(
             'signal{}_area'.format(signal), ntoys=nToys, freezeSignal=0,
             condor=False, njobs=50
         )
-	# If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
-	print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
+        # If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
+        print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
     
 def doSignalInjection(signal, tf='', injectedAmount=2000.000, nToys=500, condor=False):
     '''
@@ -437,15 +471,15 @@ def doSignalInjection(signal, tf='', injectedAmount=2000.000, nToys=500, condor=
             'signal{}_area'.format(signal), ntoys=nToys, injectAmount=injectedAmount,
             condor=False
         )
-	# Once finished, we can plot the results immediately from the output rootfile.
+        # Once finished, we can plot the results immediately from the output rootfile.
     else:
-	# 500 (default) toys, split across 50 condor jobs
+        # 500 (default) toys, split across 50 condor jobs
         twoD.SignalInjection(
             'signal{}_area'.format(signal), ntoys=nToys, injectAmount=injectedAmount,
             condor=True, njobs=50
         )
-	# If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
-	print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
+        # If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
+        print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
     
     
 def plot_GoF(signal, tf='', condor=False):
@@ -473,7 +507,7 @@ if __name__ == "__main__":
    
 
    if args.signal:
-	print("Processing single signal: {}...".format(args.signal))
+        print("Processing single signal: {}...".format(args.signal))
         process_signals([args.signal],study)
 
    elif args.senario_fit == 'RSGluon':
@@ -484,6 +518,8 @@ if __name__ == "__main__":
         print("Processing ZPrime signals...")
         ZPrime_signals = load_signals_from_json('jsons/signals.json', args.senario_fit)
         process_signals(ZPrime_signals, study)
+   elif study == 'fit':
+        print("Processing background-only fit...")
+        ML_fit_background()
+        plot_fit_background()
  
-
-
