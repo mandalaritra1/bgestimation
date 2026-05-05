@@ -386,7 +386,8 @@ def ML_fit(signal):
     
     print 'twoD.GetParamsOnMatch()'
     fitparams = twoD.GetParamsOnMatch(regex='', subtag='ttbar-{}_area'.format(signal), b_or_s='b')
-    print 'ttbar_xsec', fitparams['ttbar_xsec']
+    if 'ttbar_xsec' in fitparams:
+        print 'ttbar_xsec', fitparams['ttbar_xsec']
     
     with open("fitparams.json", "w") as outfile: 
         json.dump(fitparams, outfile)
