@@ -196,6 +196,48 @@ rmin = -6
 rmax = 6
 extra='--robustFit=1'
 
+def _fix_integral_process_codes(card_path):
+    '''
+    Combine v10 parses the second "process" line as integers. Some
+    2DAlphabet/Pandas combinations write integral process IDs as floats
+    (for example "1.0"), which makes text2workspace.py fail before the fit.
+    '''
+    if not os.path.exists(card_path):
+        return
+
+    with open(card_path, 'r') as card_file:
+        lines = card_file.readlines()
+
+    changed = False
+    fixed_lines = []
+    for line in lines:
+        fields = line.split()
+        if len(fields) > 1 and fields[0] == 'process':
+            fixed_fields = [fields[0]]
+            all_numeric = True
+            for value in fields[1:]:
+                try:
+                    as_float = float(value)
+                except ValueError:
+                    all_numeric = False
+                    break
+                if not as_float.is_integer():
+                    all_numeric = False
+                    break
+                fixed_fields.append(str(int(as_float)))
+
+            if all_numeric:
+                fixed_lines.append(' '.join(fixed_fields) + '\n')
+                changed = changed or (fixed_lines[-1] != line)
+                continue
+
+        fixed_lines.append(line)
+
+    if changed:
+        with open(card_path, 'w') as card_file:
+            card_file.writelines(fixed_lines)
+        print 'Fixed integral process codes in {0}'.format(card_path)
+
 
 # for b*, the P/F regions are named MtwvMtPass and MtwvMtFail
 # so, just need to find and replace Pass/Fail depending on which region we want
@@ -335,6 +377,7 @@ def ML_fit(signal):
     # toyData but this requires supplying almost the full Combine card line and
     # is reserved for quick hacks by those who are familiar with Combine cards.
     twoD.MakeCard(subset, 'ttbar-{}_area'.format(signal))
+    _fix_integral_process_codes(twoD.tag+'/ttbar-{}_area/card.txt'.format(signal))
 
     # Run the fit! Will run in the area specified by the `subtag` (ie. sub-directory) argument
     # and use the card in that area. Via the cardOrW argument, a different card or workspace can be
@@ -358,6 +401,7 @@ def ML_fit_background():
     subtag = 'background_area'
 
     twoD.MakeCard(subset, subtag)
+    _fix_integral_process_codes(twoD.tag+'/'+subtag+'/card.txt')
     twoD.MLfit(subtag,rMin=rmin,rMax=rmax,verbosity=0,extra=extra)
 
     print 'twoD.GetParamsOnMatch()'
@@ -409,6 +453,7 @@ def perform_limit(signal):
         # Make a subset and card as in ML_fit()
         subset = twoD.ledger.select(_select_signal, signame)
         twoD.MakeCard(subset, signame+'_area')
+        _fix_integral_process_codes(twoD.tag+'/'+signame+'_area/card.txt')
         # Run the blinded limit with our dictionary of TF parameters
         # NOTE: we are running without blinding (blinding seems to cause an issue with the limit plotting script...)
         twoD.Limit(
@@ -433,6 +478,7 @@ def GoF(signal, tf='', nToys=100, condor=False):
         print('{}/signal{}_area/card.txt does not exist, making card'.format(twoD.tag,signal))
         subset = twoD.ledger.select(_select_signal, 'signal{}'.format(signal), tf)
         twoD.MakeCard(subset, 'signal{}_area'.format(signal))
+        _fix_integral_process_codes(twoD.tag+'/'+'signal{}_area/card.txt'.format(signal))
 
     # Now run Combine's Goodness of Fit method, either on Combine or locally. 
     if condor == False:
@@ -464,6 +510,7 @@ def doSignalInjection(signal, tf='', injectedAmount=2000.000, nToys=500, condor=
         print('{}/signal{}_area/card.txt does not exist, making card'.format(twoD.tag,signal))
         subset = twoD.ledger.select(_select_signal, 'signal{}'.format(signal), tf)
         twoD.MakeCard(subset, 'signal{}_area'.format(signal))
+        _fix_integral_process_codes(twoD.tag+'/'+'signal{}_area/card.txt'.format(signal))
 
     # Now run Combine's Goodness of Fit method, either on Combine or locally. 
     if condor == False:
