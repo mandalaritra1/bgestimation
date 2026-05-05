@@ -35,6 +35,28 @@ Combined run2 :
 /eos/home-h/hrejebsf/2Dalphabet_files/combined_run2_files
 ```
 
+For the first Run-3 2024 nominal-only pass, use the ROOT files in the
+2DAlphabet environment:
+
+```bash
+/eos/user/a/amandal/ttbarhad_root_files/2dAlphabetInputs
+```
+
+Required files:
+
+```bash
+data_2024.root
+TTbar_2024.root
+signal_2024.root
+```
+
+The 2024 configs use the nominal histograms
+`MttvsMtCen2024Pass`, `MttvsMtCen2024Fail`, `MttvsMtFwd2024Pass`,
+and `MttvsMtFwd2024Fail`. They intentionally do not include Run-2
+systematic variations. `signal_2024.root` is used as the nominal
+`signalRSGluon4000` template so Combine receives a standard signal-plus-background
+datacard.
+
 
 ## **Running Fits**
 
@@ -46,6 +68,12 @@ source run_fit.sh
 This will execute the ttbar.py script for different scenarios. You can choose to run fits, limits, and goodness-of-fit (GOF) tests using the "--all" argument, or adjust the argument based on your needs.
 
 Fit results for a given category will be stored under the "output/" directory.
+
+For the 2024 nominal signal-plus-background pass, run:
+
+```bash
+source run_fit_2024.sh
+```
 
 ### Combining datacards
 

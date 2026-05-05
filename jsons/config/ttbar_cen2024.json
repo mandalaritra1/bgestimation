@@ -1,0 +1,110 @@
+{
+    "NAME": "ttbar",
+    "GLOBAL": {
+        "FILE": "$process.root",
+        "HIST": "MttvsMt$region",
+        "path": "/eos/user/a/amandal/ttbarhad_root_files/2dAlphabetInputs",
+        "SIGNAME": []
+    },
+    "REGIONS": {
+        "Cen2024Pass": {
+            "PROCESSES": [
+                "signalRSGluon4000",
+                "TTbar_2024"
+            ],
+            "BINNING": "default"
+        },
+        "Cen2024Fail": {
+            "PROCESSES": [
+                "signalRSGluon4000",
+                "TTbar_2024"
+            ],
+            "BINNING": "default"
+        }
+    },
+    "PROCESSES": {
+        "data_obs": {
+            "SYSTEMATICS": [],
+            "SCALE": 1.0,
+            "COLOR": 1,
+            "TYPE": "DATA",
+            "TITLE": "Data",
+            "ALIAS": "data_2024",
+            "LOC": "path/FILE:HIST"
+        },
+        "TTbar_2024": {
+            "SYSTEMATICS": [],
+            "SCALE": 1.0,
+            "COLOR": 2,
+            "TYPE": "BKG",
+            "TITLE": "t#bar{t}",
+            "LOC": "path/FILE:HIST"
+        },
+        "signalRSGluon4000": {
+            "SYSTEMATICS": [],
+            "SCALE": 1.0,
+            "COLOR": 4,
+            "TYPE": "SIGNAL",
+            "TITLE": "RSGluon 4 TeV",
+            "ALIAS": "signal_2024",
+            "LOC": "path/FILE:HIST"
+        }
+    },
+    "SYSTEMATICS": {},
+    "BINNING": {
+        "default": {
+            "X": {
+                "NAME": "jetmass",
+                "TITLE": "m_{t} [GeV]",
+                "BINS": [
+                    25,
+                    60,
+                    105,
+                    130,
+                    150,
+                    170,
+                    175,
+                    180,
+                    185,
+                    190,
+                    210,
+                    475
+                ],
+                "SIGSTART": 105,
+                "SIGEND": 210
+            },
+            "Y": {
+                "NAME": "resmass",
+                "TITLE": "m_{t#bar{t}} [GeV]",
+                "BINS": [
+                    800,
+                    1100,
+                    1300,
+                    1500,
+                    1700,
+                    1900,
+                    2100,
+                    2300,
+                    2500,
+                    2700,
+                    2900,
+                    3100,
+                    3300,
+                    3500,
+                    3700,
+                    6500
+                ]
+            }
+        }
+    },
+    "OPTIONS": {
+        "blindedPlots": [],
+        "blindedFit": [],
+        "plotPrefitSigInFitB": false,
+        "plotUncerts": false,
+        "plotTitles": false,
+        "plotTemplateComparisons": false,
+        "plotEvtsPerUnit": false,
+        "year": 2024
+    }
+}

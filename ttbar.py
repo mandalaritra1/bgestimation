@@ -29,8 +29,11 @@ path = args.input
 tf = args.tf
 study = args.study
 output_dir = args.output
-json_file='jsons/config/ttbar_'+str(cat)+'.json'
-print ('json_file is', json_file)
+config_template='jsons/config/ttbar_'+str(cat)+'.json'
+if not os.path.exists(output_dir):
+    os.makedirs(output_dir)
+json_file=output_dir+'/runConfig_'+str(cat)+'.json'
+print ('json_file is', config_template)
 print ('senario is ', senario)
 
 
@@ -49,12 +52,18 @@ def load_signals_from_json(json_signals, senario):
 signals = load_signals_from_json('jsons/signals.json', senario)
 
 
-with open(json_file, 'r') as file:
+with open(config_template, 'r') as file:
     data = json.load(file, object_pairs_hook=OrderedDict)
 
 
 if 'GLOBAL' in data :
-	data['GLOBAL']['path'] = path
+    data['GLOBAL']['path'] = path
+    uses_signame = False
+    for region in data.get('REGIONS', {}).values():
+        for process in region.get('PROCESSES', []):
+            if 'SIGNAME' in process:
+                uses_signame = True
+    if uses_signame:
         data['GLOBAL']['SIGNAME']= signals
   
 with open(json_file, 'w') as file:
@@ -70,7 +79,7 @@ def get_transfer_function(cat):
 def process_signals(signals, study):
     """Process the given list of signals."""
     for sig in signals:
-      if study == 'all' or study == 'ftest':
+      if study == 'all' or study == 'ftest' or study == 'fit':
         ML_fit(sig)
         plot_fit(sig)
       if study =='all' or study =='limit':
@@ -88,8 +97,6 @@ if study == 'ftest' :
 else : 
    params = get_transfer_function(cat)
  
-if not os.path.exists(output_dir):
-    os.makedirs(output_dir)
 savedirname = output_dir+'/ttbarfits_'+cat+'_'+dname+params
 
 print 'saving to {0}'.format(savedirname)
@@ -188,6 +195,48 @@ _rpf_options = {
 rmin = -6
 rmax = 6
 extra='--robustFit=1'
+
+def _fix_integral_process_codes(card_path):
+    '''
+    Combine v10 parses the second "process" line as integers. Some
+    2DAlphabet/Pandas combinations write integral process IDs as floats
+    (for example "1.0"), which makes text2workspace.py fail before the fit.
+    '''
+    if not os.path.exists(card_path):
+        return
+
+    with open(card_path, 'r') as card_file:
+        lines = card_file.readlines()
+
+    changed = False
+    fixed_lines = []
+    for line in lines:
+        fields = line.split()
+        if len(fields) > 1 and fields[0] == 'process':
+            fixed_fields = [fields[0]]
+            all_numeric = True
+            for value in fields[1:]:
+                try:
+                    as_float = float(value)
+                except ValueError:
+                    all_numeric = False
+                    break
+                if not as_float.is_integer():
+                    all_numeric = False
+                    break
+                fixed_fields.append(str(int(as_float)))
+
+            if all_numeric:
+                fixed_lines.append(' '.join(fixed_fields) + '\n')
+                changed = changed or (fixed_lines[-1] != line)
+                continue
+
+        fixed_lines.append(line)
+
+    if changed:
+        with open(card_path, 'w') as card_file:
+            card_file.writelines(fixed_lines)
+        print 'Fixed integral process codes in {0}'.format(card_path)
 
 
 # for b*, the P/F regions are named MtwvMtPass and MtwvMtFail
@@ -328,6 +377,7 @@ def ML_fit(signal):
     # toyData but this requires supplying almost the full Combine card line and
     # is reserved for quick hacks by those who are familiar with Combine cards.
     twoD.MakeCard(subset, 'ttbar-{}_area'.format(signal))
+    _fix_integral_process_codes(twoD.tag+'/ttbar-{}_area/card.txt'.format(signal))
 
     # Run the fit! Will run in the area specified by the `subtag` (ie. sub-directory) argument
     # and use the card in that area. Via the cardOrW argument, a different card or workspace can be
@@ -340,6 +390,34 @@ def ML_fit(signal):
     
     with open("fitparams.json", "w") as outfile: 
         json.dump(fitparams, outfile)
+
+def ML_fit_background():
+    '''
+    Run a nominal background-only fit. This is intended for the first Run-3
+    2024 pass, where the signal template may not exist yet.
+    '''
+    twoD = TwoDAlphabet(savedirname,json_file, loadPrevious=True)
+    subset = twoD.ledger
+    subtag = 'background_area'
+
+    twoD.MakeCard(subset, subtag)
+    _fix_integral_process_codes(twoD.tag+'/'+subtag+'/card.txt')
+    twoD.MLfit(subtag,rMin=rmin,rMax=rmax,verbosity=0,extra=extra)
+
+    print 'twoD.GetParamsOnMatch()'
+    fitparams = twoD.GetParamsOnMatch(regex='', subtag=subtag, b_or_s='b')
+    if 'ttbar_xsec' in fitparams:
+        print 'ttbar_xsec', fitparams['ttbar_xsec']
+
+    with open("fitparams_background.json", "w") as outfile:
+        json.dump(fitparams, outfile)
+
+def plot_fit_background():
+    '''
+    Plots the nominal background-only fit from ML_fit_background().
+    '''
+    twoD = TwoDAlphabet(savedirname, json_file , loadPrevious=True)
+    twoD.StdPlots('background_area', twoD.ledger)
     
 def plot_fit(signal):
     '''
@@ -375,6 +453,7 @@ def perform_limit(signal):
         # Make a subset and card as in ML_fit()
         subset = twoD.ledger.select(_select_signal, signame)
         twoD.MakeCard(subset, signame+'_area')
+        _fix_integral_process_codes(twoD.tag+'/'+signame+'_area/card.txt')
         # Run the blinded limit with our dictionary of TF parameters
         # NOTE: we are running without blinding (blinding seems to cause an issue with the limit plotting script...)
         twoD.Limit(
@@ -399,6 +478,7 @@ def GoF(signal, tf='', nToys=100, condor=False):
         print('{}/signal{}_area/card.txt does not exist, making card'.format(twoD.tag,signal))
         subset = twoD.ledger.select(_select_signal, 'signal{}'.format(signal), tf)
         twoD.MakeCard(subset, 'signal{}_area'.format(signal))
+        _fix_integral_process_codes(twoD.tag+'/'+'signal{}_area/card.txt'.format(signal))
 
     # Now run Combine's Goodness of Fit method, either on Combine or locally. 
     if condor == False:
@@ -406,16 +486,16 @@ def GoF(signal, tf='', nToys=100, condor=False):
             'signal{}_area'.format(signal), ntoys=nToys, freezeSignal=0,
             condor=False
         )
-	# Once finished, we can plot the results immediately from the output rootfile.
-	plot_GoF(signal, tf, condor)
+        # Once finished, we can plot the results immediately from the output rootfile.
+        plot_GoF(signal, tf, condor)
     else:
-	# 500 (default) toys, split across 50 condor jobs
+        # 500 (default) toys, split across 50 condor jobs
         twoD.GoodnessOfFit(
             'signal{}_area'.format(signal), ntoys=nToys, freezeSignal=0,
             condor=False, njobs=50
         )
-	# If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
-	print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
+        # If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
+        print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
     
 def doSignalInjection(signal, tf='', injectedAmount=2000.000, nToys=500, condor=False):
     '''
@@ -430,6 +510,7 @@ def doSignalInjection(signal, tf='', injectedAmount=2000.000, nToys=500, condor=
         print('{}/signal{}_area/card.txt does not exist, making card'.format(twoD.tag,signal))
         subset = twoD.ledger.select(_select_signal, 'signal{}'.format(signal), tf)
         twoD.MakeCard(subset, 'signal{}_area'.format(signal))
+        _fix_integral_process_codes(twoD.tag+'/'+'signal{}_area/card.txt'.format(signal))
 
     # Now run Combine's Goodness of Fit method, either on Combine or locally. 
     if condor == False:
@@ -437,15 +518,15 @@ def doSignalInjection(signal, tf='', injectedAmount=2000.000, nToys=500, condor=
             'signal{}_area'.format(signal), ntoys=nToys, injectAmount=injectedAmount,
             condor=False
         )
-	# Once finished, we can plot the results immediately from the output rootfile.
+        # Once finished, we can plot the results immediately from the output rootfile.
     else:
-	# 500 (default) toys, split across 50 condor jobs
+        # 500 (default) toys, split across 50 condor jobs
         twoD.SignalInjection(
             'signal{}_area'.format(signal), ntoys=nToys, injectAmount=injectedAmount,
             condor=True, njobs=50
         )
-	# If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
-	print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
+        # If submitting GoF jobs on condor, you must first wait for them to finish before plotting. 
+        print('Jobs successfully submitted - you can run plot_GoF after the jobs have finished running to plot results')
     
     
 def plot_GoF(signal, tf='', condor=False):
@@ -473,7 +554,7 @@ if __name__ == "__main__":
    
 
    if args.signal:
-	print("Processing single signal: {}...".format(args.signal))
+        print("Processing single signal: {}...".format(args.signal))
         process_signals([args.signal],study)
 
    elif args.senario_fit == 'RSGluon':
@@ -484,6 +565,8 @@ if __name__ == "__main__":
         print("Processing ZPrime signals...")
         ZPrime_signals = load_signals_from_json('jsons/signals.json', args.senario_fit)
         process_signals(ZPrime_signals, study)
+   elif study == 'fit':
+        print("Processing background-only fit...")
+        ML_fit_background()
+        plot_fit_background()
  
-
-
