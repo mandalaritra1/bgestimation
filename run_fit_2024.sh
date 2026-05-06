@@ -11,7 +11,11 @@ run_fit() {
 
     test -s "${fit_dir}/fitDiagnosticsTest.root"
     test -s "${fit_dir}/higgsCombineTest.FitDiagnostics.mH120.root"
-    echo "FitDiagnostics outputs found for ${cat}: ${fit_dir}"
+    if grep -q "Fit failed" "${fit_dir}/FitDiagnostics.log"; then
+        echo "FitDiagnostics failed for ${cat}. See ${fit_dir}/FitDiagnostics.log" >&2
+        exit 1
+    fi
+    echo "FitDiagnostics succeeded for ${cat}: ${fit_dir}"
 }
 
 run_fit cen2024
