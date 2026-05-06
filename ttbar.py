@@ -20,6 +20,7 @@ parser.add_argument('--signal', help='Specify a single signal to process (e.g., 
 parser.add_argument('--senario_fit', choices=['RSGluon', 'ZPrime'], help='Specify the signal senario to process the fit: RSGluon or ZPrime.')
 parser.add_argument('--tf', type=str, help="TF in case of Ftest study")
 parser.add_argument('--study',choices=['ftest', 'limit', 'fit', 'all'], default = 'all', type=str, help="running ttbar for specific study.")
+parser.add_argument('--skip-plots', action='store_true', help='Skip 2DAlphabet StdPlots after running fits.')
 args = parser.parse_args()
 
 
@@ -81,7 +82,8 @@ def process_signals(signals, study):
     for sig in signals:
       if study == 'all' or study == 'ftest' or study == 'fit':
         ML_fit(sig)
-        plot_fit(sig)
+        if not args.skip_plots:
+            plot_fit(sig)
       if study =='all' or study =='limit':
         #print('gain time')
         perform_limit(sig)
