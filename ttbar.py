@@ -196,7 +196,7 @@ _rpf_options = {
     
 rmin = -1
 rmax = 6
-extra='--robustFit=1 --setParameters r=0 --cminDefaultMinimizerStrategy 1 --cminFallbackAlgo Minuit2,Migrad,0:0.1 --cminFallbackAlgo Minuit2,Simplex,0:0.1'
+extra='--robustFit=1 --cminFallbackAlgo Minuit2,Migrad,0:0.1 --cminFallbackAlgo Minuit2,Simplex,0:0.1'
 
 def _fix_integral_process_codes(card_path):
     '''
