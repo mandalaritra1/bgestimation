@@ -426,7 +426,11 @@ def plot_fit(signal):
     '''
     twoD = TwoDAlphabet(savedirname, json_file , loadPrevious=True)
     subset = twoD.ledger.select(_select_signal, 'signal{}'.format(signal))
-    twoD.StdPlots('ttbar-{}_area'.format(signal), subset)
+    try:
+        twoD.StdPlots('ttbar-{}_area'.format(signal), subset)
+    except ReferenceError:
+        print 'WARNING: StdPlots failed after FitDiagnostics for {0}.'.format(signal)
+        print 'WARNING: fit_b plots may be complete, but fit_s/postfitshapes_s.root is missing.'
 #     twoD.StdPlots('ttbar-{}_area'.format(signal), subset, prefit=True)
 
 def perform_limit(signal):
