@@ -7,10 +7,10 @@ physical limit, since `r=1 ⇔ as-run (expected) xsec` for all three methods —
 draws them CMS-"Preliminary" style:
 
   - 2DAlphabet median + 68% (green) + 95% (yellow) expected bands,
-  - bump-hunt ① and 1D-alphabet ② medians overlaid,
-  - theory lines: MadGraph topcolor (red) and XSDB Par (blue),
+  - bump-hunt and 1D-alphabet medians overlaid,
+  - theory line: MadGraph topcolor (red),
 
-and reports the expected exclusion crossing of each method against each theory.
+and reports the expected exclusion crossing of each method against topcolor.
 
     python oned/plot_sigmaB.py --tag comb        # reads *_comb.json
     python oned/plot_sigmaB.py --tag cen24
@@ -112,18 +112,16 @@ def main() -> int:
     if bh:
         s = _sigmaB(bh, expected_tab, "exp")
         ax.plot([m for m, _ in s], [v for _, v in s], "o-", color="#1f77b4",
-                lw=2, ms=7, label="① bump-hunt")
+                lw=2, ms=7, label="bump-hunt")
     if al:
         s = _sigmaB(al, expected_tab, "exp")
         ax.plot([m for m, _ in s], [v for _, v in s], "s-", color="#d62728",
-                lw=2, ms=7, label="② 1D alphabet")
+                lw=2, ms=7, label="1D alphabet")
 
-    # theory lines (full grid up to 6 TeV)
+    # theory line: MadGraph topcolor only (full grid up to 6 TeV)
     grid = [m for m in topcolor[0] if 1.0 <= m <= 6.0]
     ax.plot(grid, [_xsec_interp(m, *topcolor) for m in grid], "-", color="red",
             lw=2.2, marker=".", label="MadGraph topcolor 1%")
-    ax.plot(grid, [_xsec_interp(m, *xsdb) for m in grid], "-", color="blue",
-            lw=2.2, marker=".", label="XSDB Par 1%")
 
     ax.set_yscale("log")
     ax.set_xlim(1, 6)
@@ -141,16 +139,14 @@ def main() -> int:
 
     # crossings report
     print(f"[plot_sigmaB] {out}")
-    for name, d in (("① bump-hunt", bh), ("② 1D alphabet", al), ("2DAlphabet", td)):
+    for name, d in (("bump-hunt", bh), ("1D alphabet", al), ("2DAlphabet", td)):
         if not d:
             continue
         s = _sigmaB(d, expected_tab, "exp")
         xm = [m for m, _ in s]; lim = [v for _, v in s]
         cx_tc = _crossings(xm, lim, *topcolor)
-        cx_xs = _crossings(xm, lim, *xsdb)
         fmt = lambda c: ", ".join(f"{v:.2f}" for v in c) if c else "none in range"
-        print(f"  {name:16s}  excl. crossing  topcolor: [{fmt(cx_tc)}] TeV   "
-              f"XSDB: [{fmt(cx_xs)}] TeV")
+        print(f"  {name:16s}  excl. crossing vs MadGraph topcolor: [{fmt(cx_tc)}] TeV")
     return 0
 
 

@@ -76,6 +76,10 @@ def main() -> int:
     ap.add_argument("--signal", default="signalZPrime4000")
     ap.add_argument("--inputs", default=None,
                     help="oned_inputs root (default oned/out/oned_inputs_<cat>.root)")
+    ap.add_argument("--scenario", default="ZPrime_1",
+                    help="signal scenario for the r=1<->xsec scale (default ZPrime_1)")
+    ap.add_argument("--input-dir", dest="input_dir", default=None,
+                    help="EOS dir of TTbarAllHad24_*.root (default: project_inputs default)")
     ap.add_argument("--tf-order", type=int, default=2,
                     help="Bernstein order of the m_tt transfer factor (default 2)")
     ap.add_argument("--mtt-min", type=float, default=800.0)
@@ -87,8 +91,11 @@ def main() -> int:
 
     inputs = args.inputs or os.path.join("oned", "out", f"oned_inputs_{args.cat}.root")
     # (Re)project for THIS signal so the templates always match --signal.
-    subprocess.run(["python", "oned/project_inputs.py", "--cat", args.cat,
-                    "--signal", args.signal, "--out", inputs], check=True)
+    proj = ["python", "oned/project_inputs.py", "--cat", args.cat,
+            "--signal", args.signal, "--scenario", args.scenario, "--out", inputs]
+    if args.input_dir:
+        proj += ["--input", args.input_dir]
+    subprocess.run(proj, check=True)
 
     f = ROOT.TFile.Open(inputs)
     ax = f.Get("data_obs_Pass").GetXaxis()
@@ -97,7 +104,8 @@ def main() -> int:
     edges = np.array([ax.GetBinLowEdge(b) for b in range(b1, b2 + 1)]
                      + [ax.GetBinUpEdge(b2)])
     nb = len(edges) - 1
-    obs = rl.Observable("mtt", edges)
+    obsname = f"mtt_{args.cat}"  # cat-specific so cen+fwd workspaces can be merged
+    obs = rl.Observable(obsname, edges)
     centers = edges[:-1] + 0.5 * np.diff(edges)
     scaled = (centers - edges[0]) / (edges[-1] - edges[0])  # m_tt mapped to [0,1]
 
@@ -107,31 +115,33 @@ def main() -> int:
             T[(proc, reg)] = _bins(f.Get(f"{proc}_{reg}"), b1, b2)
     f.Close()
 
-    model = rl.Model("oned_alpha")
+    cs = args.cat  # category suffix for all channel/sample/observable names
+    model = rl.Model(f"oned_alpha_{cs}")
     chans = {}
     fail_qcd = None
     # Constrained nuisances. Besides being physical (ttbar normalisation + lumi),
     # Combine v10's AsymptoticLimits::runLimitExpected crashes on a model whose
     # nuisances are *all* free flatParams (here the per-bin QCD + TF), so the
-    # model needs at least one genuinely constrained nuisance.
+    # model needs at least one genuinely constrained nuisance. lumi + ttbar_norm
+    # are SHARED across cen/fwd (same NuisanceParameter name) -> correlated, correct.
     lumi = rl.NuisanceParameter("lumi_2024", "lnN")
     ttnorm = rl.NuisanceParameter("ttbar_norm_2024", "lnN")
     # --- Fail first (defines the data-driven per-bin QCD the Pass region scales) --
     for reg in ("Fail", "Pass"):
-        ch = rl.Channel(reg.lower())
+        ch = rl.Channel(f"{reg.lower()}{cs}")  # no '_' allowed in rhalphalib channels
         model.addChannel(ch)
         chans[reg] = ch
-        ch.setObservation((T[("data_obs", reg)][0], edges, "mtt"))
+        ch.setObservation((T[("data_obs", reg)][0], edges, obsname))
         tt = T[("ttbar", reg)]
-        tt_s = rl.TemplateSample(f"{reg.lower()}_ttbar", rl.Sample.BACKGROUND,
-                                 (np.maximum(tt[0], 0.0), edges, "mtt"),
+        tt_s = rl.TemplateSample(f"{reg.lower()}{cs}_ttbar", rl.Sample.BACKGROUND,
+                                 (np.maximum(tt[0], 0.0), edges, obsname),
                                  force_positive=True)
         tt_s.setParamEffect(ttnorm, 1.20)
         tt_s.setParamEffect(lumi, 1.014)
         ch.addSample(tt_s)
         sg = T[("signal", reg)]
-        sg_s = rl.TemplateSample(f"{reg.lower()}_signal", rl.Sample.SIGNAL,
-                                 (np.maximum(sg[0], 0.0), edges, "mtt"),
+        sg_s = rl.TemplateSample(f"{reg.lower()}{cs}_signal", rl.Sample.SIGNAL,
+                                 (np.maximum(sg[0], 0.0), edges, obsname),
                                  force_positive=True)
         sg_s.setParamEffect(lumi, 1.014)
         ch.addSample(sg_s)
@@ -142,7 +152,7 @@ def main() -> int:
                              for i in range(nb)])
             sigmascale = 10.0
             qscaled = initq * (1.0 + sigmascale / np.maximum(1.0, np.sqrt(initq))) ** qpar
-            fail_qcd = rl.ParametericSample(f"fail_qcd", rl.Sample.BACKGROUND, obs, qscaled)
+            fail_qcd = rl.ParametericSample(f"fail{cs}_qcd", rl.Sample.BACKGROUND, obs, qscaled)
             ch.addSample(fail_qcd)
         else:  # Pass QCD = TF(m_tt) * Fail QCD
             num = max((T[("data_obs", "Pass")][0] - T[("ttbar", "Pass")][0]).sum(), 1e-3)
@@ -151,7 +161,7 @@ def main() -> int:
             tf = rl.BernsteinPoly(f"tf_{args.cat}", (args.tf_order,), ["mtt"],
                                   limits=(0, 50))
             tf_params = qcdeff * tf(scaled)
-            pass_qcd = rl.TransferFactorSample("pass_qcd", rl.Sample.BACKGROUND,
+            pass_qcd = rl.TransferFactorSample(f"pass{cs}_qcd", rl.Sample.BACKGROUND,
                                                tf_params, fail_qcd)
             ch.addSample(pass_qcd)
 
@@ -166,7 +176,7 @@ def main() -> int:
     # genuinely constrained nuisance (the QCD/TF params are all free flatParams).
     build = (
         f"cd {outdir} && "
-        f"combineCards.py fail=fail.txt pass=pass.txt > combined.txt && "
+        f"combineCards.py fail{cs}=fail{cs}.txt pass{cs}=pass{cs}.txt > combined.txt && "
         f"text2workspace.py combined.txt -o ws.root && "
         f"rm -f higgsCombine*.root && "
         f"combine -M AsymptoticLimits -d ws.root --run blind "

@@ -62,22 +62,25 @@ def windowed(h, lo, hi):
     return hw
 
 
-def build_family(order, mtt):
-    """RooGenericPdf for a dijet family of given order.
+def build_family(order, mtt, cs):
+    """RooGenericPdf for a dijet family of given order (names suffixed by cat `cs`).
 
     The analytic shape goes straight into the RooMultiPdf (as in the CMS Hgg /
     dijet bump-hunts). We deliberately do NOT wrap it in RooParametricShapeBinPdf:
     that class's constructor is broken against the ROOT 6.30 in CMSSW_14
     (RooListProxy default-ctor runtime error). With 100 GeV bins the per-bin
-    center-evaluation bias is sub-percent, fine for a cross-check."""
+    center-evaluation bias is sub-percent, fine for a cross-check.
+
+    All object names carry the category suffix so cen+fwd workspaces can be merged
+    with combineCards without name collisions (distinct pdf_index per category)."""
     formula, pars = FAMILIES[order]
     rpars = []
     for name, init, lo, hi in pars:
-        rpars.append(ROOT.RooRealVar(f"dijet{order}_{name}", name, init, lo, hi))
+        rpars.append(ROOT.RooRealVar(f"dijet{order}_{cs}_{name}", name, init, lo, hi))
     arglist = ROOT.RooArgList(mtt)
     for v in rpars:
         arglist.add(v)
-    gen = ROOT.RooGenericPdf(f"dijet{order}", formula.format(s=SQRTS), arglist)
+    gen = ROOT.RooGenericPdf(f"dijet{order}_{cs}", formula.format(s=SQRTS), arglist)
     return gen, rpars
 
 
@@ -88,6 +91,8 @@ def main() -> int:
     ap.add_argument("--signal", default="signalZPrime4000")
     ap.add_argument("--scenario", default="ZPrime_1")
     ap.add_argument("--inputs", default=None)
+    ap.add_argument("--input-dir", dest="input_dir", default=None,
+                    help="EOS dir of TTbarAllHad24_*.root (default: project_inputs default)")
     ap.add_argument("--mtt-min", type=float, default=1500.0,
                     help="lower fit edge (GeV); start above the spectrum turn-on")
     ap.add_argument("--mtt-max", type=float, default=6500.0)
@@ -99,9 +104,11 @@ def main() -> int:
 
     orders = [int(o) for o in args.orders.split(",")]
     inputs = args.inputs or os.path.join("oned", "out", f"oned_inputs_{args.cat}.root")
-    subprocess.run(["python", "oned/project_inputs.py", "--cat", args.cat,
-                    "--signal", args.signal, "--scenario", args.scenario,
-                    "--out", inputs], check=True)
+    proj = ["python", "oned/project_inputs.py", "--cat", args.cat,
+            "--signal", args.signal, "--scenario", args.scenario, "--out", inputs]
+    if args.input_dir:
+        proj += ["--input", args.input_dir]
+    subprocess.run(proj, check=True)
 
     f = ROOT.TFile.Open(inputs)
     hdata = windowed(f.Get("data_obs_Pass"), args.mtt_min, args.mtt_max)
@@ -111,14 +118,15 @@ def main() -> int:
     sig_rate = hsig.Integral()
     nbins = hdata.GetNbinsX()
 
-    mtt = ROOT.RooRealVar("mtt", "m_{t#bar{t}}", args.mtt_min, args.mtt_max, "GeV")
+    cs = args.cat  # category suffix for all workspace object names (combine-safe)
+    mtt = ROOT.RooRealVar(f"mtt_{cs}", "m_{t#bar{t}}", args.mtt_min, args.mtt_max, "GeV")
     mtt.setBins(nbins)
-    data = ROOT.RooDataHist("data_obs", "", ROOT.RooArgList(mtt), hdata)
+    data = ROOT.RooDataHist(f"data_obs_{cs}", "", ROOT.RooArgList(mtt), hdata)
 
     # --- fit each family, F-test / LRT ------------------------------------------
     fits, nlls = {}, {}
     for o in orders:
-        gen, rpars = build_family(o, mtt)
+        gen, rpars = build_family(o, mtt, cs)
         res = gen.fitTo(data, ROOT.RooFit.Save(True), ROOT.RooFit.PrintLevel(-1),
                         ROOT.RooFit.Minimizer("Minuit2", "migrad"),
                         ROOT.RooFit.Strategy(1), ROOT.RooFit.SumW2Error(False))
@@ -158,18 +166,18 @@ def main() -> int:
     c.SaveAs(plot_path)
 
     # --- assemble the RooMultiPdf workspace -------------------------------------
-    pdf_index = ROOT.RooCategory("pdf_index", "dijet order index")
+    pdf_index = ROOT.RooCategory(f"pdf_index_{cs}", "dijet order index")
     pdfs = ROOT.RooArgList()
     keep = []  # keep python refs alive
     for i, o in enumerate(orders):
         pdf_index.defineType(f"dijet{o}", i)
         pdfs.add(fits[o][0])
         keep.append(fits[o])
-    multipdf = ROOT.RooMultiPdf("roomultipdf", "", pdf_index, pdfs)
-    norm = ROOT.RooRealVar("roomultipdf_norm", "", ndata, 0.0, 3.0 * max(ndata, 1.0))
+    multipdf = ROOT.RooMultiPdf(f"roomultipdf_{cs}", "", pdf_index, pdfs)
+    norm = ROOT.RooRealVar(f"roomultipdf_{cs}_norm", "", ndata, 0.0, 3.0 * max(ndata, 1.0))
 
-    sig_dh = ROOT.RooDataHist("signal_dh", "", ROOT.RooArgList(mtt), hsig)
-    sig_pdf = ROOT.RooHistPdf("signal_pdf", "", ROOT.RooArgSet(mtt), sig_dh)
+    sig_dh = ROOT.RooDataHist(f"signal_dh_{cs}", "", ROOT.RooArgList(mtt), hsig)
+    sig_pdf = ROOT.RooHistPdf(f"signal_pdf_{cs}", "", ROOT.RooArgSet(mtt), sig_dh)
 
     w = ROOT.RooWorkspace("w", "w")
     imp = getattr(w, "import")
@@ -184,27 +192,37 @@ def main() -> int:
     with open(card, "w") as fh:
         fh.write("imax 1\njmax 1\nkmax *\n")
         fh.write("-" * 60 + "\n")
-        fh.write("shapes data_obs   Pass ws.root w:data_obs\n")
-        fh.write("shapes background Pass ws.root w:roomultipdf\n")
-        fh.write("shapes signal     Pass ws.root w:signal_pdf\n")
+        fh.write(f"shapes data_obs   Pass_{cs} ws.root w:data_obs_{cs}\n")
+        fh.write(f"shapes background Pass_{cs} ws.root w:roomultipdf_{cs}\n")
+        fh.write(f"shapes signal     Pass_{cs} ws.root w:signal_pdf_{cs}\n")
         fh.write("-" * 60 + "\n")
-        fh.write("bin          Pass\n")
+        fh.write(f"bin          Pass_{cs}\n")
         fh.write("observation  -1\n")
         fh.write("-" * 60 + "\n")
-        fh.write("bin      Pass      Pass\n")
+        fh.write(f"bin      Pass_{cs}    Pass_{cs}\n")
         fh.write("process  signal    background\n")
         fh.write("process  0         1\n")
         fh.write(f"rate     {sig_rate:.6f}   1\n")
         fh.write("-" * 60 + "\n")
         fh.write("lumi_2024 lnN  1.014  -\n")
-        fh.write("pdf_index discrete\n")
+        fh.write(f"pdf_index_{cs} discrete\n")
 
+    # For the BLINDED EXPECTED limit the Asimov is signal-free and smooth, so the
+    # discrete profiling always selects the LOWEST dijet order (fewest background
+    # params -> least signal absorption -> best expected limit; verified: profiled
+    # per-cat == frozen lowest order). We therefore fix pdf_index to the lowest
+    # order for the expected limit -- this also keeps the limit numerically stable
+    # and properly ordered when cen+fwd are combined (two free discretes make the
+    # asymptotic degenerate). The F-test 'favoured' order above characterises the
+    # *observed* data's shape complexity and matters only when unblinding.
+    lo_idx = 0  # orders[0], the lowest dijet order in the RooMultiPdf
     build = (
         f"cd {outdir} && "
         f"text2workspace.py card.txt -o ws_combine.root && "
         f"rm -f higgsCombine*.root && "
         f"combine -M AsymptoticLimits -d ws_combine.root --run blind "
-        f"--rMin 0 --rMax {args.rMax} --setParameters r=0 "
+        f"--rMin 0 --rMax {args.rMax} --setParameters r=0,pdf_index_{cs}={lo_idx} "
+        f"--freezeParameters pdf_index_{cs} "
         f"--cminDefaultMinimizerStrategy 0 -v 0 > combine.log 2>&1"
     )
     subprocess.run(build, shell=True)
