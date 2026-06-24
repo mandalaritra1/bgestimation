@@ -1,10 +1,62 @@
-# 1D cross-check of the 2DAlphabet limit — Run-3 2024 (cen24, Z′ 1%)
+# 1D cross-check of the 2DAlphabet limit — Run-3 2024 (Z′ 1%)
 
 **Question.** Is the 2DAlphabet (2D, `(m_SD, m_tt)`) background estimate / blinded
 limit *machinery-correct*, or could the strong Run-3 reach be a software/method
 artifact? We answer it by re-deriving the limit with **two independent 1D
 methods on the same inputs and the same (thin) systematics**, so the only thing
 that changes is the background-estimation technique.
+
+---
+
+## Headline — blinded σ×B, recomb tagger, cen+fwd combined
+
+The money plot: blinded (signal region masked) 95% CL upper limit on
+`σ×B(Z′→tt̄)` for the 1% width, **recomb_ttag** GloParT-v3 tagger inputs, **cen+fwd
+combined**, with the **MadGraph topcolor** σ×B as the theory line. The two 1D
+methods are overlaid on the 2DAlphabet expected bands.
+
+![Blinded sigma x B 95% CL upper limit vs Z' mass (1% width, recomb tagger, cen+fwd combined): 2DAlphabet yellow/green expected bands with dashed median, bump-hunt (blue) and 1D alphabet (red) overlaid sitting just above the 2D median, and the MadGraph topcolor 1% red line crossing the limits near 4 TeV.](plots/sigmaB_recomb_comb.png)
+
+**Expected exclusion crossing vs MadGraph topcolor (1%):**
+
+| Method | crossing [TeV] |
+|---|---|
+| ① bump-hunt   | **3.96** |
+| ② 1D alphabet | **4.10** |
+| 2DAlphabet    | **4.28** |
+
+All three agree within ~0.3 TeV; the 2D's 4.28 TeV reproduces the recorded recomb
+result. The 1D methods sit just *above* the 2D bands (slightly weaker) across the
+reach region — the expected price of integrating out the `m_SD` axis — confirming
+the 2D limit is **not** a software/method artifact, now under full blinding, the
+recomb tagger, the cen+fwd combination, and on the physical σ×B scale.
+
+Blinded `r` (cen+fwd, recomb) and the implied σ×B = r·`expected_xsec` [pb]:
+
+| m(Z′) | ① r | ② r | 2D r | ① σ×B | ② σ×B | 2D σ×B | topcolor σ×B |
+|---|---|---|---|---|---|---|---|
+| 2.0 | 0.033 | 0.027 | 0.026 | 6.9e-3 | 5.5e-3 | 5.4e-3 | 4.8e-2 |
+| 3.0 | 0.080 | 0.067 | 0.044 | 1.6e-3 | 1.3e-3 | 8.7e-4 | 4.6e-3 |
+| 4.0 | 0.243 | 0.201 | 0.150 | 6.7e-4 | 5.5e-4 | 4.1e-4 | 6.4e-4 |
+| 5.0 | 1.20 | 0.926 | 0.975 | 5.4e-4 | 4.2e-4 | 4.4e-4 | 1.2e-4 |
+| 6.0 | 5.92 | 5.63 | 7.54 | 6.1e-4 | 5.8e-4 | 7.8e-4 | 3.0e-5 |
+
+Notes on this configuration:
+- **Blinded:** 1D limits use `combine --run blind` (expected-only, Asimov-based —
+  observed never computed); the 2D uses the analysis masked-SR snapshot recipe.
+- **Inputs:** `recomb_ttag` (GloParT-v3 recombination tagger), staged from LPC
+  (`/uscms/.../rootfiles/recomb_ttag`) to lxplus `~/recomb_ttag_inputs/`; the 2D
+  reference is the existing recomb blinded combined `AsymptoticLimits` grid.
+- **Combination:** each 1D method run for cen24 + fwd24, merged with `combineCards`
+  (`oned/combine_cats.py`) into one cen+fwd likelihood; one shared signal strength.
+- **Bump-hunt order:** for the blinded expected limit the discrete profiling
+  selects the lowest dijet order on the signal-free Asimov, so `pdf_index` is fixed
+  there (keeps the combined asymptotic stable); the F-test order is reported.
+
+The cen24-only, baseline-tagger methodology validation that established the
+machinery agreement is kept below for the record.
+
+---
 
 All numbers below are **cen24 only**, Z′→tt̄ 1% width, 109.95 fb⁻¹, blinded
 expected 95% CL upper limit on `r` (`r=1 ⇔ as-run σ×B`; lower `r` = stronger
