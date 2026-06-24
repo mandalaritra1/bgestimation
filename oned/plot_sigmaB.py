@@ -115,8 +115,8 @@ def main() -> int:
                 lw=2, ms=7, label="bump-hunt")
     if al:
         s = _sigmaB(al, expected_tab, "exp")
-        ax.plot([m for m, _ in s], [v for _, v in s], "s-", color="#d62728",
-                lw=2, ms=7, label="1D alphabet")
+        ax.plot([m for m, _ in s], [v for _, v in s], "s-", color="#9400d3",
+                lw=2, ms=7, label="1D alphabet")  # darkviolet, distinct from red topcolor
 
     # theory line: MadGraph topcolor only (full grid up to 6 TeV)
     grid = [m for m in topcolor[0] if 1.0 <= m <= 6.0]
