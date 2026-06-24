@@ -16,8 +16,11 @@ Output: oned/out/oned_inputs_<cat>.root with keys
 from __future__ import annotations
 
 import argparse
+import json
 import os
+import re
 
+import numpy as np
 import ROOT
 
 ROOT.gROOT.SetBatch(True)
@@ -32,6 +35,37 @@ FILE_TOKEN = {
     # signal token is supplied via --signal, e.g. 24_signalZPrime4000
 }
 
+# Signal-normalisation constants, mirroring ttbar.py so the 1D `r` is on the same
+# footing as the 2DAlphabet fit. The ZPrime raw templates are normalised to a
+# generic 10 pb; per-mass we rescale so r=1 <-> the as-run ('expected') xsec.
+RAW_SIGNAL_XSEC_PB = 10.0
+SENARIO_XS_KEY = {"ZPrime_1": "ZPrime1", "ZPrime_10": "ZPrime10",
+                  "ZPrime_30": "ZPrime30", "RSGluon": "RSGluon"}
+
+
+def signal_scale(signal: str, scenario: str, xs_json: str = "jsons/signal_xs.json") -> float:
+    """SCALE applied to the raw signal template so r=1 <-> as-run xsec (ZPrime_1).
+
+    Reproduces ttbar.py's per-mass theory scaling: SCALE = expected_xsec / 10 pb,
+    with log-linear interpolation in mass. Returns 1.0 if it cannot be computed
+    (the caller then uses the raw 10 pb template)."""
+    key = SENARIO_XS_KEY.get(scenario)
+    m = re.search(r"(\d{3,4})(?:_\d+)?\s*$", signal)
+    if key is None or m is None or not os.path.exists(xs_json):
+        return 1.0
+    entry = json.load(open(xs_json)).get(key)
+    if not entry:
+        return 1.0
+    mass_tev = int(m.group(1)) / 1000.0
+    masses, xs = entry["mass"], entry["expected"]
+    for mm, tt in zip(masses, xs):
+        if abs(mm - mass_tev) < 1e-6:
+            xsec = tt
+            break
+    else:
+        xsec = float(np.exp(np.interp(mass_tev, masses, np.log(xs))))
+    return xsec / RAW_SIGNAL_XSEC_PB
+
 
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description=__doc__,
@@ -40,6 +74,9 @@ def _parse_args() -> argparse.Namespace:
                    help="category / region prefix (default: cen24)")
     p.add_argument("--signal", default="signalZPrime4000",
                    help="signal name, matches TTbarAllHad24_<signal>.root (default: signalZPrime4000)")
+    p.add_argument("--scenario", default="ZPrime_1",
+                   choices=list(SENARIO_XS_KEY),
+                   help="signal scenario for the per-mass r=1<->xsec scale (default: ZPrime_1)")
     p.add_argument("--input", default=DEFAULT_INPUT, help="input directory (EOS)")
     p.add_argument("--msd-min", type=float, default=None,
                    help="lower jet m_SD edge for the projection window (GeV); default: full range")
@@ -73,10 +110,13 @@ def main() -> int:
     out_path = args.out or os.path.join("oned", "out", f"oned_inputs_{args.cat}.root")
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
+    sscale = signal_scale(args.signal, args.scenario)
+
     win = ""
     if args.msd_min is not None or args.msd_max is not None:
         win = f"  (m_SD window [{args.msd_min}, {args.msd_max}])"
-    print(f"[project_inputs] cat={args.cat} signal={args.signal}{win}")
+    print(f"[project_inputs] cat={args.cat} signal={args.signal} "
+          f"scenario={args.scenario} signal_SCALE={sscale:.6g}{win}")
 
     fout = ROOT.TFile.Open(out_path, "RECREATE")
     integrals = {}
@@ -95,6 +135,8 @@ def main() -> int:
                 return 1
             key = f"{proc}_{reg}"
             proj = _project_y(h2, key, args.msd_min, args.msd_max)
+            if proc == "signal" and sscale != 1.0:
+                proj.Scale(sscale)  # r=1 <-> as-run xsec, matching the 2D fit
             integrals[key] = proj.Integral()
             fout.cd()
             proj.Write(key)
