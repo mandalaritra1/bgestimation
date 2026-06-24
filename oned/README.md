@@ -39,9 +39,16 @@ signal window) from ①/② against bgestimation's 2DAlphabet result per categor
 (`cen24`, `fwd24`), then combined. Agreement validates the 2D data-driven TF;
 disagreement flags model dependence.
 
-## Status
+## Status — DONE (cen24, Z′ 1%, 5 masses)
 
-- [x] Tooling installed/verified on lxplus: `rhalphalib 0.3.0`,
-      `RooParametricShapeBinPdf` + `RooMultiPdf` (in Combine v10.0.1).
-- [x] `project_inputs.py` — projects the TH2s to 1D `m_tt` templates.
-- [ ] `bumphunt.py` (①), `alphabet1d.py` (②), `compare.py`.
+- [x] Tooling on lxplus: `rhalphalib 0.3.0`, `RooMultiPdf` (Combine v10.0.1).
+- [x] `project_inputs.py` — projects the TH2s to 1D `m_tt`, scales signal so
+      `r=1 ⇔ as-run xsec` (matches `ttbar.py`).
+- [x] `bumphunt.py` (①), `alphabet1d.py` (②), `compare.py`.
+- [x] Ran 2/3/4/5/6 TeV; **1D ≈ 2DAlphabet to ~30 % at 4–6 TeV**, `r=1` crossing
+      within ~0.25 TeV → 2D machinery validated. See
+      [`RESULTS_cross_check.md`](RESULTS_cross_check.md).
+
+Note: `RooParametricShapeBinPdf` *loads* but **will not construct** against the
+ROOT 6.30 in CMSSW_14 (RooListProxy default-ctor error) — ① puts the analytic
+`RooGenericPdf` straight in the `RooMultiPdf` instead (Hgg-style).

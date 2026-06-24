@@ -50,3 +50,6 @@ topcolor_xsec/
 
 # --- 1D cross-check outputs ---
 oned/out/
+# but DO keep the committed result plots that RESULTS_cross_check.md embeds
+!oned/plots/
+!oned/plots/*.png
