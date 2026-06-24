@@ -245,7 +245,7 @@
         "plotPrefitSigInFitB": true,
         "plotUncerts": false,
         "plotTitles": false,
-        "plotTemplateComparisons": false,
+        "plotTemplateComparisons": true,
         "plotEvtsPerUnit": false,
         "year": 18
     }

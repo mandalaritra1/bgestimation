@@ -31,14 +31,17 @@ def parse_args():
         '--preset',
         choices=['run2', '2024'],
         default='run2',
-        help='Convenience defaults. run2 preserves the old script defaults; 2024 uses the 2024 EOS input and RSGluon4000.',
+        help='Convenience defaults. run2 preserves the old script defaults; 2024 uses the 2024 EOS input and ZPrime4000.',
     )
     parser.add_argument('--regions', nargs='+', default=DEFAULT_REGIONS, help='Region prefixes to run.')
     parser.add_argument('--tfs', nargs='+', default=DEFAULT_TFS, help='Transfer-function forms to test.')
     parser.add_argument('--input', default=None, help='Input ROOT path passed to ttbar.py.')
     parser.add_argument('--output-base', default='ftest', help='Base output directory for F-test work areas.')
-    parser.add_argument('--scenario', default='RSGluon', help='Scenario passed to ttbar.py --senario.')
+    parser.add_argument('--scenario', default=None, help='Scenario passed to ttbar.py --senario.')
     parser.add_argument('--signal', default=None, help='Signal passed to ttbar.py --signal.')
+    parser.add_argument('--rInit', type=float, default=1.0, help='Initial signal-strength value passed through to ttbar.py.')
+    parser.add_argument('--rMin', type=float, default=-6.0, help='Minimum signal-strength range passed through to ttbar.py.')
+    parser.add_argument('--rMax', type=float, default=6.0, help='Maximum signal-strength range passed through to ttbar.py.')
     parser.add_argument('--python', default=sys.executable, help='Python executable used to run ttbar.py.')
     parser.add_argument('--jobs', type=int, default=1, help='Number of transfer-function fits to run concurrently.')
     parser.add_argument('--keep-going', action='store_true', help='Continue scanning TFs after a failed fit.')
@@ -50,16 +53,18 @@ def defaults_for(args):
     if args.preset == '2024':
         years = args.years or ['2024']
         input_path = args.input or INPUT_2024
-        signal = args.signal or 'RSGluon4000'
+        signal = args.signal or 'ZPrime4000'
+        scenario = args.scenario or 'ZPrime_1'
     else:
         years = args.years or ['2016', '2017', '2018', 'Comb']
         input_path = args.input or RUN2_INPUT
         signal = args.signal or 'RSGluon2000'
+        scenario = args.scenario or 'RSGluon'
 
-    return years, input_path, signal_name(signal)
+    return years, input_path, signal_name(signal), scenario
 
 
-def make_command(args, category, tf, input_path, output_dir, signal):
+def make_command(args, category, tf, input_path, output_dir, signal, scenario):
     return [
         args.python,
         '-u',
@@ -71,13 +76,19 @@ def make_command(args, category, tf, input_path, output_dir, signal):
         '--study',
         'ftest',
         '--senario',
-        args.scenario,
+        scenario,
         '--input',
         input_path,
         '--output',
         output_dir,
         '--signal',
         signal,
+        '--rInit',
+        str(args.rInit),
+        '--rMin',
+        str(args.rMin),
+        '--rMax',
+        str(args.rMax),
     ]
 
 
@@ -110,7 +121,7 @@ def run_command(command, log_path, label, dry_run=False, print_lock=None):
         return process.wait()
 
 
-def build_tasks(args, years, input_path, signal):
+def build_tasks(args, years, input_path, signal, scenario):
     tasks = []
     for year in years:
         for region in args.regions:
@@ -120,7 +131,7 @@ def build_tasks(args, years, input_path, signal):
             for tf in args.tfs:
                 log_path = os.path.join(output_dir, 'output_{}_{}.log'.format(category, tf))
                 label = '{}:{}'.format(category, tf)
-                command = make_command(args, category, tf, input_path, output_dir, signal)
+                command = make_command(args, category, tf, input_path, output_dir, signal, scenario)
                 tasks.append((command, log_path, label))
 
     return tasks
@@ -128,13 +139,14 @@ def build_tasks(args, years, input_path, signal):
 
 def main():
     args = parse_args()
-    years, input_path, signal = defaults_for(args)
-    tasks = build_tasks(args, years, input_path, signal)
+    years, input_path, signal, scenario = defaults_for(args)
+    tasks = build_tasks(args, years, input_path, signal, scenario)
     print_lock = threading.Lock()
 
     print('Years: {}'.format(', '.join(years)))
     print('Regions: {}'.format(', '.join(args.regions)))
     print('Transfer functions: {}'.format(', '.join(args.tfs)))
+    print('Scenario: {}'.format(scenario))
     print('Signal: {}'.format(signal))
     print('Input: {}'.format(input_path))
     print('Output base: {}'.format(args.output_base))

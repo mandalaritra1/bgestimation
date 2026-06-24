@@ -41,13 +41,13 @@ def parse_args():
     )
     parser.add_argument(
         "--subtag",
-        default="ttbar-signalRSGluon4000_area",
+        default="ttbar-signalZPrime4000_area",
         help="Fit subdirectory containing fitDiagnosticsTest.root/card.txt.",
     )
     parser.add_argument(
         "--signal",
-        default="RSGluon4000",
-        help="Signal to keep in plot legends, e.g. RSGluon4000. Use --signal all to keep all signals.",
+        default="ZPrime4000",
+        help="Signal to keep in plot legends, e.g. ZPrime4000. Use --signal all to keep all signals.",
     )
     parser.add_argument(
         "--blind-region",

@@ -5,6 +5,7 @@ from TwoDAlphabet.alphawrap import BinnedDistribution, ParametricFunction
 from TwoDAlphabet.helpers import make_env_tarball
 import ROOT
 import os, sys
+import re
 import numpy as np
 import json
 import argparse
@@ -19,7 +20,10 @@ parser.add_argument('--senario', '--scenario', dest='senario', choices=['RSGluon
 parser.add_argument('--signal', help='Specify a single signal to process (e.g., RSGluon2000).')
 parser.add_argument('--senario_fit', '--scenario-fit', dest='senario_fit', choices=['RSGluon', 'ZPrime'], help='Specify the signal scenario to process the fit: RSGluon or ZPrime.')
 parser.add_argument('--tf', type=str, help="TF in case of Ftest study")
-parser.add_argument('--study',choices=['ftest', 'limit', 'fit', 'all'], default = 'all', type=str, help="running ttbar for specific study.")
+parser.add_argument('--study',choices=['ftest', 'limit', 'fit', 'plot', 'all'], default = 'all', type=str, help="running ttbar for specific study.")
+parser.add_argument('--rInit', type=float, default=0.0, help="Initial signal-strength value passed to Combine FitDiagnostics. Default 0: starting from r=1 caused fit failures.")
+parser.add_argument('--rMin', type=float, default=0.0, help="Minimum signal-strength range passed to Combine FitDiagnostics. Default 0: allowing r<0 caused fit failures (negative-QCD-like instabilities).")
+parser.add_argument('--rMax', type=float, default=6.0, help="Maximum signal-strength range passed to Combine FitDiagnostics.")
 args = parser.parse_args()
 
 
@@ -54,6 +58,112 @@ def signal_name(signal):
 def signal_tag(signal):
     """Return a stable directory/card tag without duplicating the signal prefix."""
     return signal_name(signal)
+
+
+# Scenario -> key in jsons/signal_xs.json.
+SENARIO_XS_KEY = {
+    'ZPrime_1': 'ZPrime1',
+    'ZPrime_10': 'ZPrime10',
+    'ZPrime_30': 'ZPrime30',
+    'ZPrime_DM': 'ZPrimeDM',
+    'RSGluon': 'RSGluon',
+}
+
+# Raw (SCALE=1) normalization of the signal template, in pb, per scenario family.
+# The ZPrime samples were produced at a generic 10 pb: the historical SCALE=0.01
+# gave r=1 <-> 0.1 pb (= the old `expected` in signal_xs.json), so raw = 10 pb.
+# We renormalize per mass so that r=1 corresponds to the NLO theory cross-section.
+RAW_SIGNAL_XSEC_PB = {
+    'ZPrime_1': 10.0,
+    'ZPrime_10': 10.0,
+    'ZPrime_30': 10.0,
+    'ZPrime_DM': 10.0,
+}
+
+# The 10%/30% templates were skimmed WITHOUT an xsec (manifests lack xsec_pb), so
+# their histograms are raw sum-of-weights (integral = sumw_selected). To put r on a
+# physical footing we normalize r=1 <-> 1 fb (per Haifa's request): SCALE applied to
+# the raw template = target_xsec_pb * lumi_pb / sumw_total = 1e-3 * 109950 / ~2e6.
+# sumw is ~2e6 for every mass (samples are ~2M events) so a single value is fine to
+# <0.5%. sigma*B is then mu * 1 fb in the plot.
+ONE_FB_SCALE_W10W30 = 1e-3 * 109950.0 / 2.0e6   # = 5.4975e-05  (r=1 <-> 1 fb)
+ONE_FB_SENARIOS = ('ZPrime_10', 'ZPrime_30')
+
+
+def signal_mass_tev(signal):
+    """Parse the resonance mass in TeV from a signal name.
+
+    The mass is the 3-4 digit group, optionally followed by a `_<width>` suffix
+    for the non-1% widths, e.g.:
+      signalZPrime1000     -> 1.0
+      signalRSGluon4000    -> 4.0
+      signalZPrime1000_10  -> 1.0   (NOT 0.01 -- the trailing `_10` is the width)
+    """
+    match = re.search(r'(\d{3,4})(?:_\d+)?\s*$', signal)
+    return int(match.group(1)) / 1000.0 if match else None
+
+
+def theory_xsec(signal, senario):
+    """NLO theory cross-section [pb], log-interpolated/extrapolated in mass if needed."""
+    key = SENARIO_XS_KEY.get(senario)
+    if key is None:
+        return None
+    with open('jsons/signal_xs.json', 'r') as handle:
+        entry = json.load(handle).get(key)
+    mass_tev = signal_mass_tev(signal)
+    if not entry or mass_tev is None:
+        return None
+    masses = entry['mass']
+    # Use the AS-RUN ('expected') cross section, NOT theory: r=1 <-> the xsec the
+    # signal MC was normalized to, like the Run-2 repo (sigma*B = r * signal_xsec).
+    # This keeps r ~ O(1) at the sensitivity (good asymptotic behaviour) AND avoids
+    # pinning r=1 to theory (Haifa's request). The theory line is separate (plot).
+    theory = entry['expected']
+    for m, t in zip(masses, theory):
+        if abs(m - mass_tev) < 1e-6:
+            return t
+    # Log-linear interpolation/extrapolation (xsec falls steeply with mass).
+    return float(np.exp(np.interp(mass_tev, masses, np.log(theory))))
+
+
+def apply_theory_signal_scale(config, signals, senario):
+    """Set the SIGNAL process SCALE.
+
+    - ZPrime_1: r=1 <-> the as-run (expected) cross section per mass (repo style).
+    - ZPrime_10 / ZPrime_30: raw (sumw) templates -> fixed SCALE so r=1 <-> 1 fb.
+    """
+    if senario in ONE_FB_SENARIOS:
+        for proc in config.get('PROCESSES', {}).values():
+            if proc.get('TYPE') == 'SIGNAL':
+                proc['SCALE'] = ONE_FB_SCALE_W10W30
+        print('Signal SCALE = %.6g  (r=1 <-> 1 fb, raw 10/30 templates) for %s'
+              % (ONE_FB_SCALE_W10W30, senario))
+        return
+    raw_xsec = RAW_SIGNAL_XSEC_PB.get(senario)
+    if raw_xsec is None:
+        print('Signal SCALE unchanged: no raw normalization defined for scenario %s' % senario)
+        return
+    if len(signals) != 1:
+        print('Signal SCALE unchanged: per-mass theory scaling needs a single --signal (got %d)' % len(signals))
+        return
+    xsec = theory_xsec(signals[0], senario)
+    if xsec is None:
+        print('Signal SCALE unchanged: no theory xsec for %s / %s' % (signals[0], senario))
+        return
+    scale = xsec / raw_xsec
+    for proc in config.get('PROCESSES', {}).values():
+        if proc.get('TYPE') == 'SIGNAL':
+            proc['SCALE'] = scale
+    print('Signal SCALE = %.6g  (theory = %.6g pb, so r=1 <=> theory) for %s' % (scale, xsec, signals[0]))
+
+
+def projection_lumi_text(category):
+    """Luminosity label used only for 2DAlphabet postfit projection plots."""
+    if '2024' in str(category):
+        # Golden-JSON certified lumi for 2024 data (Run 3 -> 13.6 TeV). Must match
+        # the MC normalization lumi in the skimmer (_LUMI_PB['2024']).
+        return r'109.95 $fb^{-1}$ (13.6 TeV)'
+    return r'138 $fb^{-1}$ (13 TeV)'
 
 
 ROOT_COLOR_NAMES = {
@@ -93,7 +203,19 @@ if 'GLOBAL' in data:
     data['GLOBAL']['path'] = path
     data['GLOBAL']['SIGNAME'] = signals
 normalize_process_colors(data)
-  
+# Normalize the signal so r=1 <-> the AS-RUN (expected) cross section per mass, like
+# the Run-2 repo (sigma*B = r * signal_xsec). NOT r=1<->theory (Haifa's request).
+# A fixed SCALE (e.g. 0.1 -> r=1<->1pb) was tried and is numerically WRONG at high
+# mass: r=1=1pb >> theory pushes r95 to ~1e-3, out of the asymptotic-valid regime,
+# so the limit floors and the exclusion drops spuriously (4.15 vs the correct 4.9).
+apply_theory_signal_scale(data, signals, senario)
+
+# Write the runtime-modified config to a PER-SIGNAL file instead of clobbering the
+# shared jsons/config/ttbar_<cat>.json. This lets multiple single-signal runs
+# execute in parallel without racing on one config file. Everything downstream
+# uses json_file, so just repoint it.
+if args.signal:
+    json_file = json_file.replace('.json', '__' + signal_name(args.signal) + '.json')
 with open(json_file, 'w') as file:
     json.dump(data, file, indent=4)
 
@@ -110,10 +232,17 @@ def process_signals(signals, study):
       if study == 'all' or study == 'ftest':
         ML_fit(sig)
         plot_fit(sig)
+      if study == 'plot':
+        plot_fit(sig)
+      if study == 'limit':
+        # limit needs the b-only fit (rratio params) in this same area; run it
+        # here so `--study limit` is self-contained (no GoF, unlike `all`).
+        ML_fit(sig)
+        plot_fit(sig)
       if study =='all' or study =='limit':
         #print('gain time')
         perform_limit(sig)
-      if study=='all': 
+      if study=='all':
         #print('gain time')
         GoF(sig)
 
@@ -128,6 +257,13 @@ else :
 if not os.path.exists(output_dir):
     os.makedirs(output_dir)
 savedirname = output_dir + '/ttbarfits_' + cat + '_' + dname + params
+
+# Per-mass project dir for single-signal studies (limit/fit/all). Otherwise every
+# `--signal` run overwrites the shared base.root via make_workspace(), leaving only
+# the last signal's shapes -> the combined text2workspace fails for every other mass.
+# (ftest keeps its own dir naming, untouched.)
+if args.signal and study != 'ftest':
+    savedirname += '_' + signal_name(args.signal)
 
 print('saving to {0}'.format(savedirname))
 
@@ -222,8 +358,9 @@ _rpf_options = {
 
 
     
-rmin = -6
-rmax = 6
+rinit = args.rInit
+rmin = args.rMin
+rmax = args.rMax
 extra='--robustFit=1'
 
 
@@ -370,7 +507,7 @@ def ML_fit(signal):
     # Run the fit! Will run in the area specified by the `subtag` (ie. sub-directory) argument
     # and use the card in that area. Via the cardOrW argument, a different card or workspace can be
     # supplied (passed to the -d option of Combine).
-    twoD.MLfit('ttbar-{}_area'.format(signal_tag(signal)),rMin=rmin,rMax=rmax,verbosity=0,extra=extra)
+    twoD.MLfit('ttbar-{}_area'.format(signal_tag(signal)),rInit=rinit,rMin=rmin,rMax=rmax,verbosity=0,extra=extra)
     
     print('twoD.GetParamsOnMatch()')
     fitparams = twoD.GetParamsOnMatch(regex='', subtag='ttbar-{}_area'.format(signal_tag(signal)), b_or_s='b')
@@ -386,7 +523,11 @@ def plot_fit(signal):
     twoD = TwoDAlphabet(savedirname, json_file , loadPrevious=True)
     signame = signal_name(signal)
     subset = twoD.ledger.select(_select_signal, signame)
-    twoD.StdPlots('ttbar-{}_area'.format(signal_tag(signal)), subset)
+    twoD.StdPlots(
+        'ttbar-{}_area'.format(signal_tag(signal)),
+        subset,
+        lumiText=projection_lumi_text(cat),
+    )
 #     twoD.StdPlots('ttbar-{}_area'.format(signal_tag(signal)), subset, prefit=True)
 
 def perform_limit(signal):

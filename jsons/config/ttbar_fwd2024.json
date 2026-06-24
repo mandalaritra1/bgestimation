@@ -7,20 +7,20 @@
         "HIST": "MttvsMt$region",
         "HIST_UP": "MttvsMt$region$systup",
         "HIST_DOWN": "MttvsMt$region$systdown",
-        "path": "/eos/user/a/amandal/ttbarhad_root_files/2dAlphabetInputs",
+        "path": "root://eosuser.cern.ch//eos/user/a/amandal/ttbarhad_root_files/2dAlphabetInputs",
         "SIGNAME": [
-            "signalRSGluon4000"
+            "signalZPrime1200"
         ]
     },
     "REGIONS": {
-        "Fwd2024Pass": {
+        "Fwd24Pass": {
             "PROCESSES": [
                 "24_SIGNAME",
                 "24_TTbar"
             ],
             "BINNING": "default"
         },
-        "Fwd2024Fail": {
+        "Fwd24Fail": {
             "PROCESSES": [
                 "24_SIGNAME",
                 "24_TTbar"
@@ -48,10 +48,10 @@
                 "q2_24",
                 "ttag_pt1_24"
             ],
-            "SCALE": 0.01,
+            "SCALE": 0.1,
             "COLOR": "black",
             "TYPE": "SIGNAL",
-            "TITLE": "g_{RS} (2 TeV)",
+            "TITLE": "Z^{#prime}, 1#% #mathrm{width}",
             "LOC": "path/FILE:HIST"
         },
         "24_TTbar": {
@@ -134,7 +134,7 @@
         "default": {
             "X": {
                 "NAME": "jetmass",
-                "TITLE": "m_{t} [GeV]",
+                "TITLE": "m_{t}",
                 "BINS": [
                     25,
                     60,
@@ -154,7 +154,7 @@
             },
             "Y": {
                 "NAME": "resmass",
-                "TITLE": "m_{t#bar{t}} [GeV]",
+                "TITLE": "m_{t#bar{t}}",
                 "BINS": [
                     800,
                     1100,
@@ -178,15 +178,15 @@
     },
     "OPTIONS": {
         "blindedPlots": [
-            "Fwd2024Pass"
+            "Fwd24Pass"
         ],
         "blindedFit": [
-            "Fwd2024Pass"
+            "Fwd24Pass"
         ],
         "plotPrefitSigInFitB": true,
         "plotUncerts": false,
         "plotTitles": false,
-        "plotTemplateComparisons": true,
+        "plotTemplateComparisons": false,
         "plotEvtsPerUnit": false,
         "year": 24
     }

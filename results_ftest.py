@@ -73,7 +73,7 @@ def parse_args():
         '--preset',
         choices=['run2', '2024'],
         default='run2',
-        help='Convenience defaults. run2 preserves old defaults; 2024 uses year 2024 and RSGluon4000.',
+        help='Convenience defaults. run2 preserves old defaults; 2024 uses year 2024 and ZPrime4000.',
     )
     parser.add_argument('--regions', nargs='+', default=DEFAULT_REGIONS, help='Region prefixes to compare.')
     parser.add_argument('--tfs', nargs='+', default=DEFAULT_TFS, help='Transfer-function forms to compare.')
@@ -123,7 +123,7 @@ def load_analysis_deps():
 def defaults_for(args):
     if args.preset == '2024':
         years = args.years or ['2024']
-        signal = args.signal or 'RSGluon4000'
+        signal = args.signal or 'ZPrime4000'
     else:
         years = args.years or ['2016', '2017', '2018', 'Comb']
         signal = args.signal or 'RSGluon2000'

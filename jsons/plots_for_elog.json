@@ -8,6 +8,6 @@
 	"plots_fit_b/postfit_projy.pdf":"Postfit plots wrt ttbar mass, logy"
     },
     "SIGNALS":{
-	"ttbar-RSGluon2000_area":"ttbar and RSGluon m = 2000 GeV"
+	"ttbar-signalZPrime4000_area":"ttbar and Z' 1% width, m = 4000 GeV"
     }
 }

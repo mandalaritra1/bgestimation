@@ -9,17 +9,7 @@
         "HIST_DOWN": "MttvsMt$region$systdown",
         "path": "root://eosuser.cern.ch//eos/user/h/hrejebsf/2Dalphabet_files/files_loosetomedium_Sep24/2016",
         "SIGNAME": [
-            "signalRSGluon1000",
-            "signalRSGluon1500",
-            "signalRSGluon2000",
-            "signalRSGluon2500",
-            "signalRSGluon3000",
-            "signalRSGluon3500",
-            "signalRSGluon4000",
-            "signalRSGluon4500",
-            "signalRSGluon5000",
-            "signalRSGluon5500",
-            "signalRSGluon6000"
+            "signalRSGluon2000"
         ]
     },
     "REGIONS": {
@@ -241,7 +231,7 @@
         "plotPrefitSigInFitB": true,
         "plotUncerts": false,
         "plotTitles": false,
-        "plotTemplateComparisons": false,
+        "plotTemplateComparisons": true,
         "plotEvtsPerUnit": false,
         "year": 16
     }

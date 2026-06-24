@@ -150,6 +150,8 @@ def makeCMSText(x1,y1,additionalText=None,dx=0.1, size=35):
     pTextCMS.SetTextFont(63)
     pTextCMS.SetTextSize(size)
     pTextCMS.SetTextAlign(13)
+    pTextCMS.SetFillStyle(0)
+    pTextCMS.SetBorderSize(0)
     rootObj.append(pTextCMS)
     pTextCMS.Draw("Same")
 
@@ -159,6 +161,8 @@ def makeCMSText(x1,y1,additionalText=None,dx=0.1, size=35):
         pTextAdd.SetTextFont(53)
         pTextAdd.SetTextSize(size)
         pTextAdd.SetTextAlign(13)
+        pTextAdd.SetFillStyle(0)
+        pTextAdd.SetBorderSize(0)
         rootObj.append(pTextAdd)
         pTextAdd.Draw("Same")
     return pTextCMS    
@@ -166,10 +170,14 @@ def makeCMSText(x1,y1,additionalText=None,dx=0.1, size=35):
 
 def makeLumiText(x1, y1, lumi, year, size=30):
     pText = ROOT.TPaveText(x1,y1,x1,y1,"NDC")
-    pText.AddText("%s fb#lower[-0.8]{#scale[0.7]{#minus1}} (%s)" % (lumi, "13 TeV"))
+    # 2024 is Run 3 (13.6 TeV); earlier years / run2 are 13 TeV.
+    energy = "13.6 TeV" if str(year) in ("24", "2024") else "13 TeV"
+    pText.AddText("%s fb#lower[-0.8]{#scale[0.7]{#minus1}} (%s)" % (lumi, energy))
     pText.SetTextFont(43)
     pText.SetTextSize(31)
     pText.SetTextAlign(32)
+    pText.SetFillStyle(0)
+    pText.SetBorderSize(0)
     #pText.AddText(str(lumi)+" fb#lower[-0.8]{#scale[0.7]{-1}} (" + year + ")")
     rootObj.append(pText)
     pText.Draw("Same")
@@ -183,6 +191,8 @@ def makeText(x1,y1,x2,y2,text,size=32,font=43):
     pText.SetTextFont(font)
     pText.SetTextSize(size)
     pText.SetTextAlign(13)
+    pText.SetFillStyle(0)
+    pText.SetBorderSize(0)
     rootObj.append(pText)
     pText.Draw("SAME")
 

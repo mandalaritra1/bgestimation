@@ -65,7 +65,7 @@ for fit in fits :
     hist_data = file_1.Get(str(directory)+"/"+"data_obs")
     print ("hist_data is ", hist_data.GetName())
     print ("hist_data integral is  ", hist_data.Integral())
-    hist_sig2000 = file_1.Get(str(directory)+"/"+str(dict[i])+"_signalZPrime2000")
+    hist_signal = file_1.Get(str(directory)+"/"+str(dict[i])+"_signalZPrime4000")
 
     if i == 0 :
       
@@ -75,7 +75,7 @@ for fit in fits :
      hist_totb_sum = hist_totb.ProjectionY("totb_obs"+str(i))
      hist_data_sum = hist_data.ProjectionY("data_obs"+str(i))
      print ("integral iteration data ", i , " is ", hist_data_sum.Integral())
-     hist_sig2000_sum = hist_sig2000.ProjectionY()
+     hist_signal_sum = hist_signal.ProjectionY()
 
     else: 
   
@@ -85,14 +85,14 @@ for fit in fits :
      hist_totb_sum.Add(hist_totb.ProjectionY("totb_obs"+str(i)))
      hist_data_sum.Add(hist_data.ProjectionY("data_obs"+str(i)))
      print ("integral iteration data ", i , " is ", hist_data_sum.Integral())
-     hist_sig2000_sum.Add(hist_sig2000.ProjectionY())
+     hist_signal_sum.Add(hist_signal.ProjectionY())
     
 
 ##%%%%%%%%%%%% normalisation per bin width  %%%%%%%%%%%%%%%%%%%%%%
 
 
   '''  
-  for hist in [ hist_TTbar_sum, hist_QCD_sum , hist_totb_sum , hist_data_sum , hist_sig2000_sum] : 
+  for hist in [ hist_TTbar_sum, hist_QCD_sum , hist_totb_sum , hist_data_sum , hist_signal_sum] : 
     for i in range(1, hist.GetNbinsX() + 1):  # Loop over bins
       bin_content = hist.GetBinContent(i)
       bin_error = hist.GetBinError(i)  # Get the bin error
@@ -232,16 +232,16 @@ for fit in fits :
   hist_totb_sum.SetFillColor(ROOT.kGray)
   hist_totb_sum.SetFillStyle(3354)
 
-  hist_sig2000_sum.SetLineColor(ROOT.kBlue -6)
-  #hist_sig2000_sum2.SetLineColor(ROOT.kGreen+2)
-  hist_sig2000_sum.SetLineWidth(3)
-  #hist_sig2000_sum2.SetLineWidth(3)
+  hist_signal_sum.SetLineColor(ROOT.kBlue -6)
+  #hist_signal_alt_sum.SetLineColor(ROOT.kGreen+2)
+  hist_signal_sum.SetLineWidth(3)
+  #hist_signal_alt_sum.SetLineWidth(3)
 
-  hist_sig2000_sum.SetLineStyle(2)
-  #hist_sig2000_sum2.SetLineStyle(2)
+  hist_signal_sum.SetLineStyle(2)
+  #hist_signal_alt_sum.SetLineStyle(2)
 
-  hist_sig2000_sum.Scale(0.5)
-  #hist_sig2000_sum2.Scale(5)
+  hist_signal_sum.Scale(0.5)
+  #hist_signal_alt_sum.Scale(5)
 
   hist_data_sum.Draw("pe X0")
   hs.Draw("hist SAME")
@@ -249,8 +249,8 @@ for fit in fits :
   hist_totb_sum.Draw("E2 SAME")
   hist_data_sum.Draw("pe X0 SAME")
   if projy == "projy1":
-    hist_sig2000_sum.Draw("HIST SAME")
-    ##hist_sig2000_sum2.Draw("HIST SAME")
+    hist_signal_sum.Draw("HIST SAME")
+    ##hist_signal_alt_sum.Draw("HIST SAME")
   pad2.cd()
   
   xmin = pull.GetXaxis().GetXmin()
@@ -291,8 +291,7 @@ for fit in fits :
   legend.Draw()
   if projy == "projy1":
     legend2 = makeLegend(0.2, 0.45, 0.45, 0.65)
-    legend2.AddEntry(hist_sig2000_sum,"Z', 1% width, M = 2 TeV","l")
-    #legend2.AddEntry(#hist_sig2000_sum2,"Z', 1% width, M = 4 TeV","l")
+    legend2.AddEntry(hist_signal_sum,"Z', 1% width, M = 4 TeV","l")
+    #legend2.AddEntry(hist_signal_alt_sum,"Z', 1% width, M = 4 TeV","l")
     legend2.Draw()
   canvas.SaveAs("closure_results/"+str(year)+"_"+str(cat)+"_"+str(projy)+"_"+str(fit)+"_s_diff.pdf")
-

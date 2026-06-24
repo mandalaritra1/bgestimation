@@ -125,7 +125,9 @@ def plot_limit(blind=False):
  ymin = 1e-4
 
  xmin = signal_mass[0]
- xmax = signal_mass[-1]
+ # End the x-axis at the last mass that actually has a limit point (e.g. 6 TeV),
+ # not at signal_mass[-1] which includes higher masses kept only for the theory line.
+ xmax = max(x_mass) if len(x_mass) else signal_mass[-1]
 
 
  linestyle = "l"
@@ -180,7 +182,7 @@ def plot_limit(blind=False):
  graphWP.SetMinimum(0.3e-2) #0.005
  graphWP.SetMaximum(ymax)
  for index,mass in enumerate(signal_mass):
-    xsec = theory_xsecs[index] * 1.3 ##k factor.
+    xsec = theory_xsecs[index] * 1.0 ## no k-factor (official 13.6 TeV xsec)
     graphWP.SetPoint(index,    mass,   xsec    )
  graphWP.SetLineWidth(3)
  graphWP.SetLineColor(4)
@@ -208,6 +210,7 @@ def plot_limit(blind=False):
     g_limit.GetYaxis().SetTitle("#sigma_{"+signal_string[signal]+"} #times B("+signal_string[signal]+" #rightarrow t #bar{t}) [pb]") # NOT GENERIC
 
     g_limit.Draw('ap')
+    g_limit.GetXaxis().SetLimits(xmin, xmax)  # SetRangeUser doesn't bound a TGraph x-axis
     g_error95.Draw(fillstyle)
     g_error.Draw(fillstyle)
     g_mclimit.Draw("SAME")
@@ -222,6 +225,7 @@ def plot_limit(blind=False):
     g_mclimit.GetXaxis().SetTitleSize(0.055)
     g_mclimit.GetYaxis().SetTitleSize(0.05)
     g_mclimit.Draw("ap")
+    g_mclimit.GetXaxis().SetLimits(xmin, xmax)  # SetRangeUser doesn't bound a TGraph x-axis
     g_error95.Draw(fillstyle)
     g_error.Draw(fillstyle)
     g_mclimit.Draw(linestyle)
@@ -311,7 +315,7 @@ if __name__ == "__main__":
   signal_mass  = signal_df[signal+width]['mass']
   theory_xsecs = signal_df[signal+width]['theory']
   signal_xsecs = signal_df[signal+width]['expected']
-  lumi = {"16": 36, "17": 41.5, "18": 60, "run2": 138, "24": 1, "2024": 1}
+  lumi = {"16": 36, "17": 41.5, "18": 60, "run2": 138, "24": 109.95, "2024": 109.95}
   signal_string = {"RSGluon": "g_{KK}" , "ZPrime":"Z'", "ZPrime_DM": "Z_{DM}"}
   legend_string = {"" :"", "1" : "1% Width", "10":"10% Width" , "30":"30% Width", "DM":"" }
   if width != "" : tag = "_"+width

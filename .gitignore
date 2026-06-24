@@ -1,18 +1,49 @@
+# --- OS / editor / caches ---
 .DS_Store
 __pycache__/
 *.pyc
-*.log
-output*.log
-log*.txt
-fitparams.json
+*.pyo
+*.swp
 
-# Local/generated fit inputs and outputs.
-input_root_files/
+# --- stray / scratch ---
+&1
+fitparams.json
+combine_logger.out
+*.log
+log*.txt
+output*.log
+*.bak
+*.prebak*
+
+# --- runtime per-signal configs written by ttbar.py (NOT source; source is ttbar_<cat>.json) ---
+jsons/config/*__*.json
+
+# --- generated fit work areas & outputs (never commit) ---
+output/
+output_*/
 ftest/
-ftest_report/
-ftest_results/
+ftest_*/
 limits/
-output/.DS_Store
-output/*.log
-output/cards_combined_*/
-output/ttbarfits_*/
+limits_*/
+prefit_postfit_2d/
+qcd_fail_2d/
+slide_plots/
+tmp/
+tmp_*/
+test_inputs/
+logs/
+input_root_files/
+**/test_outputs/
+**/cards_combined_*/
+**/ttbarfits_*/
+
+# --- heavy / generated artefacts ---
+*.root
+*.png
+*.pdf
+*.pkl
+*.npz
+*.p
+
+# --- topcolor sigma*B work area: destined for its own repo, keep out of bgestimation ---
+topcolor_xsec/
