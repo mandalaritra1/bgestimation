@@ -12,7 +12,7 @@ This repo is the **downstream fit layer**. Full chain:
 TTbarHadronicSkimmer (coffea, branch coffea-2025)         ── UPSTREAM
   ttbarprocessor.py / ttbaranalysis.py  ->  outputs/dy/{data,QCD,TTbar,ZPrime}_2024*.coffea
   plots/make2Drootfiles.py  (+ scaleCoffeaFiles.ipynb)
-        -> TH2  MttvsMt{Cen,Fwd}2024{Pass,Fail}  inside  TTbarAllHad24_*.root
+        -> TH2  MttvsMt{Cen,Fwd}24{Pass,Fail}  inside  TTbarAllHad24_*.root
                               │  handoff
                               ▼
   EOS  /eos/user/a/amandal/ttbarhad_root_files/2dAlphabetInputs/
@@ -24,7 +24,8 @@ bgestimation  (THIS repo)                                 ── DOWNSTREAM
 
 - **Upstream skimmer:** `mandalaritra1/TTbarHadronicSkimmer` (branch `coffea-2025`),
   local at `/Users/aritra/Projects/TTBarHadronicSkimmer`. The **interface contract**
-  is the histogram names `MttvsMt{Cen,Fwd}2024{Pass,Fail}` inside `TTbarAllHad24_*.root`;
+  is the histogram names `MttvsMt{Cen,Fwd}24{Pass,Fail}` inside `TTbarAllHad24_*.root`
+  (X = jet m_SD [0,500], Y = m_tt [800,10000]);
   they are produced by the skimmer's `plots/make2Drootfiles.py` from the coffea
   `mtt_vs_mt` histograms. If the binning, region split, or hist names change here,
   they must change in `make2Drootfiles.py` too (and vice versa).

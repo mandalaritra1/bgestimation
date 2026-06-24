@@ -45,5 +45,8 @@ input_root_files/
 *.npz
 *.p
 
-# --- topcolor sigma*B work area: destined for its own repo, keep out of bgestimation ---
+# --- topcolor sigma*B work area: now its own repo, keep out of bgestimation ---
 topcolor_xsec/
+
+# --- 1D cross-check outputs ---
+oned/out/
