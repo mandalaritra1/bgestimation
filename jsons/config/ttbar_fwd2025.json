@@ -79,7 +79,7 @@
         },
         "ttbar_xsec": {
             "CODE": 0,
-            "VAL": 1.2
+            "VAL": 1.3
         },
         "pileup25": {
             "ALIAS": "PILEUP",

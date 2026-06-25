@@ -24,6 +24,11 @@ parser.add_argument('--study',choices=['ftest', 'limit', 'fit', 'plot', 'all'], 
 parser.add_argument('--rInit', type=float, default=0.0, help="Initial signal-strength value passed to Combine FitDiagnostics. Default 0: starting from r=1 caused fit failures.")
 parser.add_argument('--rMin', type=float, default=0.0, help="Minimum signal-strength range passed to Combine FitDiagnostics. Default 0: allowing r<0 caused fit failures (negative-QCD-like instabilities).")
 parser.add_argument('--rMax', type=float, default=6.0, help="Maximum signal-strength range passed to Combine FitDiagnostics.")
+parser.add_argument('--floor-qcd', dest='floor_qcd', action='store_true',
+                    help="Floor the data-driven QCD seed at zero (qcd = max(0, data - bkg)) "
+                         "before building the Fail BinnedDistribution. Removes the negative-QCD "
+                         "seed bins caused by the central ttbar over-normalization, which "
+                         "destabilize the b-only fit (e.g. cen2425 failing to produce fit_b).")
 args = parser.parse_args()
 
 
@@ -434,6 +439,22 @@ def make_workspace():
     
     # Create the data - BKGs histograms
     qcd_hists = twoD.InitQCDHists()
+
+    # Optional QCD floor: qcd = max(0, data - bkg). InitQCDHists returns data minus
+    # the nominal backgrounds (ttbar) per region; the central ttbar over-normalization
+    # drives some Fail bins negative, which seeds the Fail BinnedDistribution with
+    # negative content and makes the b-only fit diverge (cen2425 never saves fit_b).
+    # Clamping those seed bins to zero gives the fit a valid (non-negative) starting
+    # template without touching the input ROOT files.
+    if args.floor_qcd:
+        n_floored = 0
+        for _region, _h in qcd_hists.items():
+            for _bx in range(1, _h.GetNbinsX() + 1):
+                for _by in range(1, _h.GetNbinsY() + 1):
+                    if _h.GetBinContent(_bx, _by) < 0:
+                        _h.SetBinContent(_bx, _by, 0.0)
+                        n_floored += 1
+        print('[floor-qcd] qcd = max(0, data - bkg): clamped {} negative seed bins to 0'.format(n_floored))
 
     # There are only 'Pass' and 'Fail' in twoD.ledger.GetRegions(), 
     # since we only have a 'Pass' and a 'Fail' region in the input histos.
