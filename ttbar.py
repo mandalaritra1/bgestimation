@@ -158,11 +158,20 @@ def apply_theory_signal_scale(config, signals, senario):
 
 
 def projection_lumi_text(category):
-    """Luminosity label used only for 2DAlphabet postfit projection plots."""
-    if '2024' in str(category):
-        # Golden-JSON certified lumi for 2024 data (Run 3 -> 13.6 TeV). Must match
-        # the MC normalization lumi in the skimmer (_LUMI_PB['2024']).
+    """Luminosity label used only for 2DAlphabet postfit projection plots.
+
+    Run-3 values must match the MC normalization lumi in the skimmer (_LUMI_PB),
+    Golden-JSON certified / preliminary-offline (Run 3 -> 13.6 TeV):
+      2024 -> 109.95 fb^-1, 2025 -> 110.59 fb^-1, 2024+2025 -> 220.54 fb^-1.
+    Anything else (e.g. Run-2 cenComb) keeps the legacy 138 fb^-1 (13 TeV).
+    """
+    cat = str(category)
+    if '2425' in cat:
+        return r'220.54 $fb^{-1}$ (13.6 TeV)'
+    if '2024' in cat:
         return r'109.95 $fb^{-1}$ (13.6 TeV)'
+    if '2025' in cat:
+        return r'110.59 $fb^{-1}$ (13.6 TeV)'
     return r'138 $fb^{-1}$ (13 TeV)'
 
 
