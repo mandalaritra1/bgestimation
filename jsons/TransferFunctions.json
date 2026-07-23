@@ -14,5 +14,9 @@
     "cen2024_coarseY": "1x1",
     "fwd2024_coarseY": "2x1",
     "cen2024_rebin": "1x1",
-    "fwd2024_rebin": "2x1"
+    "fwd2024_rebin": "2x1",
+    "cen2025": "2x2",
+    "fwd2025": "2x1",
+    "cen2425": "2x2",
+    "fwd2425": "2x1"
 }

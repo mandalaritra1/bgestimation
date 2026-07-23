@@ -40,13 +40,7 @@
         },
         "24_SIGNAME": {
             "SYSTEMATICS": [
-                "lumi24",
-                "pileup24",
-                "pdf24",
-                "jes24",
-                "jer24",
-                "q2_24",
-                "ttag_pt1_24"
+                "lumi24"
             ],
             "SCALE": 0.1,
             "COLOR": "black",
@@ -57,15 +51,9 @@
         "24_TTbar": {
             "SYSTEMATICS": [
                 "lumi24",
-                "ttbar_xsec",
-                "pileup24",
-                "pdf24",
-                "jes24",
-                "jer24",
-                "q2_24",
-                "ttag_pt1_24"
+                "ttbar_xsec"
             ],
-            "SCALE": 1.0,
+            "SCALE": 0.75,
             "COLOR": "red",
             "TYPE": "BKG",
             "TITLE": "t#bar{t}",
