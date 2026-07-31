@@ -119,6 +119,10 @@ def provenance_stamp(extra=None):
 
 
 def stamp_figure(fig, extra=None):
+    """No-op when stamping is disabled (--no-stamp or $TTBAR_NO_STAMP=1) --
+    publication-final figures must go out unstamped."""
+    if os.environ.get("TTBAR_NO_STAMP"):
+        return
     fig.text(0.99, 0.002, provenance_stamp(extra), ha="right", va="bottom",
              fontsize=7, color="0.45", family="monospace")
 
@@ -155,6 +159,8 @@ def main():
                          "signal_xs.json). Read [<signal><width>]['theory']+['mass']; band "
                          "normalization still uses signal_xs.json 'expected'. Use e.g. "
                          "topcolor_xsec/overlay_pure_topcolor.json for a topcolor-only plot.")
+    ap.add_argument("--no-stamp", action="store_true",
+                    help="Suppress the provenance stamp (publication-final figures).")
     ap.add_argument("--theory-label", default=None,
                     help="Legend label for the primary theory curve (overrides the default).")
     args = ap.parse_args()
@@ -228,7 +234,8 @@ def main():
     ax.legend(loc="upper right", title="95% CL upper limits", fontsize=18)
     hep.cms.label("Preliminary", data=True, lumi=args.lumi, com=args.com, ax=ax)
 
-    stamp_figure(fig)
+    if not args.no_stamp:
+        stamp_figure(fig)
     os.makedirs(args.output, exist_ok=True)
     base = os.path.join(args.output, "limits_{}{}_{}_mpl".format(args.signal, args.width, args.year))
     for ext in ("png", "pdf"):
