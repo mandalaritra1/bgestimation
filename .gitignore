@@ -53,3 +53,9 @@ oned/out/
 # but DO keep the committed result plots that RESULTS_cross_check.md embeds
 !oned/plots/
 !oned/plots/*.png
+
+# --- local fit-input staging (ROOT copies of skimmer outputs) ---
+local_inputs/
+
+# --- toptag SF P1 working area (lives in ~/Projects/toptag-sf-derivation) ---
+toptag_sf_p1/

@@ -217,12 +217,16 @@ if 'GLOBAL' in data:
     data['GLOBAL']['path'] = path
     data['GLOBAL']['SIGNAME'] = signals
 normalize_process_colors(data)
-# Normalize the signal so r=1 <-> the AS-RUN (expected) cross section per mass, like
-# the Run-2 repo (sigma*B = r * signal_xsec). NOT r=1<->theory (Haifa's request).
-# A fixed SCALE (e.g. 0.1 -> r=1<->1pb) was tried and is numerically WRONG at high
-# mass: r=1=1pb >> theory pushes r95 to ~1e-3, out of the asymptotic-valid regime,
-# so the limit floors and the exclusion drops spuriously (4.15 vs the correct 4.9).
-apply_theory_signal_scale(data, signals, senario)
+# Signal normalization: keep the template at the as-staged 1 pb and let r=1 <-> 1 pb
+# for EVERY mass (SCALE=1, a single fixed units definition), rather than theory-scaling
+# per mass (apply_theory_signal_scale). This is the "don't scale the signal by the
+# theory xsec, tune the per-mass r RANGE instead" approach: the inputs staged in
+# 2dAlphabetInputs_2425 already carry the 1 pb normalization, so SCALE stays 1.0 and
+# convergence is handled by a per-mass --rMax (see run_fit_2425 sweep).
+# (The old per-mass theory scaling is kept as apply_theory_signal_scale for reference.)
+for _proc in data.get('PROCESSES', {}).values():
+    if _proc.get('TYPE') == 'SIGNAL':
+        _proc['SCALE'] = 1.0
 
 # Write the runtime-modified config to a PER-SIGNAL file instead of clobbering the
 # shared jsons/config/ttbar_<cat>.json. This lets multiple single-signal runs
@@ -246,13 +250,28 @@ def process_signals(signals, study):
       if study == 'all' or study == 'ftest':
         ML_fit(sig)
         plot_fit(sig)
+      if study == 'fit':
+        # fit-only study: FitDiagnostics + fitparams.json, no plots, no limit
+        ML_fit(sig)
       if study == 'plot':
         plot_fit(sig)
       if study == 'limit':
         # limit needs the b-only fit (rratio params) in this same area; run it
         # here so `--study limit` is self-contained (no GoF, unlike `all`).
         ML_fit(sig)
-        plot_fit(sig)
+        try:
+            if os.environ.get('RSWEEP_NOPLOT'):
+                # r-range convergence sweeps only need the limit numbers; the slow
+                # postfit projection plots dominate runtime, so skip them.
+                raise RuntimeError('RSWEEP_NOPLOT set: skipping postfit plots')
+            plot_fit(sig)
+        except Exception as _plot_err:
+            # The limit uses ONLY the b-only fit (fit_b). Postfit *plotting* can still
+            # abort when the s+b fit doesn't converge (no postfitshapes_s.root) -- seen
+            # for cen2425 at some masses where fit_b is fine but fit_s is not saved -- so
+            # don't let a plotting failure kill an otherwise-valid limit.
+            print('[limit] plot_fit failed for %s (%s); fit_b is what the limit needs, '
+                  'continuing to perform_limit.' % (sig, _plot_err))
       if study =='all' or study =='limit':
         #print('gain time')
         perform_limit(sig)
@@ -282,12 +301,15 @@ if args.signal and study != 'ftest':
 print('saving to {0}'.format(savedirname))
 
 def _generate_constraints(nparams):
+    # +-1000 let rpf coefficients run away (e.g. QCD_Fwd24rpf_par3 = -996 +- 1329
+    # in the b-only fit), which poisons the Asimov and silently kills the expected
+    # limits. The forms are 0.1*(poly in x,y in [0,1]) so physical coefficients are
+    # O(1-10); +-50 is still generous.
+    # par0 > 0 kills the sign-mirrored branch (both factors negative) that the
+    # fit wandered into (par0 = -0.02, par3 = -996 in fwd24 round 1).
     out = {}
     for i in range(nparams):
-        if i == 0:
-            out[i] = {"MIN":-1000,"MAX":1000}
-        else:
-            out[i] = {"MIN":-1000,"MAX":1000}
+        out[i] = {"MIN": 0.001 if i == 0 else -50, "MAX": 50}
     return out
 
 _rpf_options = {
@@ -376,6 +398,19 @@ rinit = args.rInit
 rmin = args.rMin
 rmax = args.rMax
 extra='--robustFit=1'
+# TTBAR_INIT_PARAMS=<fitparams.json>: seed the FitDiagnostics minimization with
+# rpf parameter values harvested from healthy standalone fits. The 2425 combined
+# likelihood is multi-modal; unseeded it lands in boundary modes (rpf pars pinned,
+# broken Asimov, expected limits silently dropped).
+_ip = os.environ.get("TTBAR_INIT_PARAMS")
+if _ip and os.path.exists(_ip):
+    _vals = json.load(open(_ip))
+    _INIT_SETPARAMS = {k: (v["val"] if isinstance(v, dict) else v)
+                       for k, v in _vals.items() if "rpf" in k}
+    if _INIT_SETPARAMS:
+        print("[init-params] seeding fit with:", _INIT_SETPARAMS)
+else:
+    _INIT_SETPARAMS = {}
 
 
 # for b*, the P/F regions are named MtwvMtPass and MtwvMtFail
@@ -537,7 +572,7 @@ def ML_fit(signal):
     # Run the fit! Will run in the area specified by the `subtag` (ie. sub-directory) argument
     # and use the card in that area. Via the cardOrW argument, a different card or workspace can be
     # supplied (passed to the -d option of Combine).
-    twoD.MLfit('ttbar-{}_area'.format(signal_tag(signal)),rInit=rinit,rMin=rmin,rMax=rmax,verbosity=0,extra=extra)
+    twoD.MLfit('ttbar-{}_area'.format(signal_tag(signal)),rInit=rinit,rMin=rmin,rMax=rmax,setParams=_INIT_SETPARAMS,verbosity=0,extra=extra)
     
     print('twoD.GetParamsOnMatch()')
     fitparams = twoD.GetParamsOnMatch(regex='', subtag='ttbar-{}_area'.format(signal_tag(signal)), b_or_s='b')
@@ -571,7 +606,11 @@ def perform_limit(signal):
     twoD = TwoDAlphabet(savedirname, json_file , loadPrevious=True)
 
     # GetParamsOnMatch() opens up the workspace's fitDiagnosticsTest.root and selects the rratio for the background
-    params_to_set = twoD.GetParamsOnMatch('rratio*', 'ttbar-{}_area'.format(signal_tag(signal)), 'b')
+    # 'rratio*' is a stale naming scheme -- our TF params are QCD_<region>rpf_par*,
+    # so nothing matched and AsymptoticLimits always started from meaningless
+    # pre-fit TF values (=> luck-of-the-minimizer expected bands, often silently
+    # absent). 'rpf' (re.search) matches every TF parameter.
+    params_to_set = twoD.GetParamsOnMatch('rpf', 'ttbar-{}_area'.format(signal_tag(signal)), 'b')
     params_to_set = {k:v['val'] for k,v in params_to_set.items()}
 
     signame = signal_name(signal)

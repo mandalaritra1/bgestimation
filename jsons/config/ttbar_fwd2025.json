@@ -40,13 +40,7 @@
         },
         "25_SIGNAME": {
             "SYSTEMATICS": [
-                "lumi25",
-                "pileup25",
-                "pdf25",
-                "jes25",
-                "jer25",
-                "q2_25",
-                "ttag_pt1_25"
+                "lumi25"
             ],
             "SCALE": 0.1,
             "COLOR": "black",
@@ -57,13 +51,7 @@
         "25_TTbar": {
             "SYSTEMATICS": [
                 "lumi25",
-                "ttbar_xsec",
-                "pileup25",
-                "pdf25",
-                "jes25",
-                "jer25",
-                "q2_25",
-                "ttag_pt1_25"
+                "ttbar_xsec"
             ],
             "SCALE": 1.0,
             "COLOR": "red",
@@ -177,12 +165,8 @@
         }
     },
     "OPTIONS": {
-        "blindedPlots": [
-            "Fwd25Pass"
-        ],
-        "blindedFit": [
-            "Fwd25Pass"
-        ],
+        "blindedPlots": [],
+        "blindedFit": [],
         "plotPrefitSigInFitB": true,
         "plotUncerts": false,
         "plotTitles": false,

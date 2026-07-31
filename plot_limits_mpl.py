@@ -116,11 +116,31 @@ def main():
     ap.add_argument("--ref-pb", type=float, default=1.0,
                     help="Reference xsec in pb for --norm onepb (r=1<->ref-pb). Use 0.001 "
                          "for the 10/30 templates scaled so r=1<->1 fb.")
+    ap.add_argument("--overlay-theory-json", default=None,
+                    help="Optional SECOND theory curve to overlay (e.g. topcolor "
+                         "overlay_pure_topcolor.json). Read [<signal><width>]['theory']. "
+                         "Bands are UNCHANGED (still r95 x expected); only an extra "
+                         "theory line + its crossing are added.")
+    ap.add_argument("--overlay-label", default="MadGraph topcolor (LO)",
+                    help="Legend label for the --overlay-theory-json curve.")
+    ap.add_argument("--theory-json", default=None,
+                    help="Override the PRIMARY (blue) theory curve source (default "
+                         "signal_xs.json). Read [<signal><width>]['theory']+['mass']; band "
+                         "normalization still uses signal_xs.json 'expected'. Use e.g. "
+                         "topcolor_xsec/overlay_pure_topcolor.json for a topcolor-only plot.")
+    ap.add_argument("--theory-label", default=None,
+                    help="Legend label for the primary theory curve (overrides the default).")
     args = ap.parse_args()
     blind = str(args.blind).lower() in ("true", "1", "yes")
 
     xs = json.load(open("jsons/signal_xs.json"))[args.signal + args.width]
     masses_all = xs["mass"]; theory_all = xs["theory"]; expected_all = xs["expected"]
+    if args.theory_json:
+        tj = json.load(open(args.theory_json))[args.signal + args.width]
+        # align the override theory onto this plot's mass grid (log-interp); bands still
+        # use signal_xs.json 'expected' (the as-run norm the fit used), unchanged.
+        theory_all = list(np.exp(np.interp(
+            np.array(masses_all), np.array(tj["mass"]), np.log(np.array(tj["theory"])))))
 
     dir24 = args.limit_dir
     tag = "" if args.width in ("1", "") else "_" + args.width
@@ -155,8 +175,21 @@ def main():
     ax.fill_between(m, lo95, hi95, color=YELLOW, label="95% expected", zorder=1)
     ax.fill_between(m, lo68, hi68, color=GREEN,  label="68% expected", zorder=2)
     ax.plot(m, med, "k--", lw=2, label="Median expected", zorder=4)
-    ax.plot(fine, thy_fine, color="blue", lw=3,
-            label=r"Theory %s %s%% width" % (sig_tex, args.width or ""), zorder=3)
+    if args.theory_label:
+        blue_label = args.theory_label
+    elif args.overlay_theory_json:
+        blue_label = r"XSDB %s %s%% (LO)" % (sig_tex, args.width or "")
+    else:
+        blue_label = r"Theory %s %s%% width" % (sig_tex, args.width or "")
+    ax.plot(fine, thy_fine, color="blue", lw=3, label=blue_label, zorder=3)
+    overlay_theory_all = None
+    if args.overlay_theory_json:
+        ov = json.load(open(args.overlay_theory_json))[args.signal + args.width]
+        ov_mass = np.array(ov["mass"]); ov_theory = np.array(ov["theory"])
+        # align overlay grid to this plot's masses (log-interp), draw on the fine grid
+        overlay_theory_all = np.exp(np.interp(masses_all, ov_mass, np.log(ov_theory)))
+        ov_fine = np.exp(np.interp(fine, ov_mass, np.log(ov_theory)))
+        ax.plot(fine, ov_fine, color="red", lw=3, label=args.overlay_label, zorder=3)
     if not blind and len(obs) == len(m):
         ax.plot(m, obs, "ko-", lw=2, label="Observed", zorder=5)
 
@@ -187,7 +220,15 @@ def main():
             # linear interp in mass at the sign change
             x0, x1 = m[i], m[i + 1]; d0, d1 = diff[i], diff[i + 1]
             mx = x0 - d0 * (x1 - x0) / (d1 - d0)
-            print("expected exclusion crossing ~ {:.2f} TeV".format(mx))
+            print("expected exclusion crossing ~ {:.2f} TeV  ({})".format(
+                mx, args.theory_label or "XSDB"))
+        if overlay_theory_all is not None:
+            log_ov_at_m = np.interp(m, masses_all, np.log(overlay_theory_all))
+            d2 = np.log(np.array(med)) - log_ov_at_m
+            for i in np.where(np.diff(np.sign(d2)) != 0)[0]:
+                x0, x1 = m[i], m[i + 1]; e0, e1 = d2[i], d2[i + 1]
+                print("expected exclusion crossing ~ {:.2f} TeV  ({})".format(
+                    x0 - e0 * (x1 - x0) / (e1 - e0), args.overlay_label))
 
 
 if __name__ == "__main__":
