@@ -96,6 +96,33 @@ def read_limits(area):
     return None
 
 
+def provenance_stamp(extra=None):
+    """Small provenance line for the plot corner: date + bgestimation version +
+    input provenance. Convention (2026-07-31): every working plot carries date,
+    skimmer input tag and bgestimation version/commit. Input tag from
+    $TTBAR_INPUT_TAG (e.g. "inputs: skimmer v1 / 2dAlphabetInputs_2425").
+    Strip for publication-final figures only."""
+    import subprocess, datetime
+    try:
+        bg = subprocess.run(["git", "describe", "--tags", "--always", "--dirty"],
+                            capture_output=True, text=True,
+                            cwd=os.path.dirname(os.path.abspath(__file__))).stdout.strip()
+    except Exception:
+        bg = "unknown"
+    parts = [datetime.date.today().isoformat(), "bgestimation " + (bg or "unknown")]
+    tag = os.environ.get("TTBAR_INPUT_TAG")
+    if tag:
+        parts.append(tag)
+    if extra:
+        parts.append(extra)
+    return "  |  ".join(parts)
+
+
+def stamp_figure(fig, extra=None):
+    fig.text(0.99, 0.002, provenance_stamp(extra), ha="right", va="bottom",
+             fontsize=7, color="0.45", family="monospace")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--year", default="2024")
@@ -201,6 +228,7 @@ def main():
     ax.legend(loc="upper right", title="95% CL upper limits", fontsize=18)
     hep.cms.label("Preliminary", data=True, lumi=args.lumi, com=args.com, ax=ax)
 
+    stamp_figure(fig)
     os.makedirs(args.output, exist_ok=True)
     base = os.path.join(args.output, "limits_{}{}_{}_mpl".format(args.signal, args.width, args.year))
     for ext in ("png", "pdf"):
