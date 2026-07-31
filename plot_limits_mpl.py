@@ -178,8 +178,33 @@ def main():
     dir24 = args.limit_dir
     tag = "" if args.width in ("1", "") else "_" + args.width
 
+    # Scan masses = union of the signal_xs.json grid and whatever limit areas exist
+    # in --limit-dir (the JSON grid predates the sub-TeV points, e.g. 400-900 GeV).
+    # theory/expected at masses outside the JSON grid are log-extrapolated, matching
+    # ttbar.py's theory_xsec() convention.
+    import re as _re
+    found = set()
+    for d in glob.glob(os.path.join(dir24, "signal{}*{}_area".format(args.signal, tag))):
+        mm = _re.match(r"signal%s(\d+)%s_area$" % (args.signal, tag), os.path.basename(d))
+        if mm:
+            found.add(int(mm.group(1)) / 1000.0)
+    scan = sorted(set(masses_all) | found)
+    _ma = np.array(masses_all, dtype=float)
+
+    def _logext(grid_vals, mass):
+        gv = np.log(np.array(grid_vals, dtype=float))
+        if mass <= _ma[0]:
+            slope = (gv[1] - gv[0]) / (_ma[1] - _ma[0])
+            return float(np.exp(gv[0] + slope * (mass - _ma[0])))
+        if mass >= _ma[-1]:
+            slope = (gv[-1] - gv[-2]) / (_ma[-1] - _ma[-2])
+            return float(np.exp(gv[-1] + slope * (mass - _ma[-1])))
+        return float(np.exp(np.interp(mass, _ma, gv)))
+
     m, med, lo68, hi68, lo95, hi95, obs, thy = [], [], [], [], [], [], [], []
-    for mass, th, exp in zip(masses_all, theory_all, expected_all):
+    for mass in scan:
+        th = _logext(theory_all, mass)
+        exp = _logext(expected_all, mass)
         area = os.path.join(dir24, "signal{}{}{}_area".format(args.signal, int(mass * 1000), tag))
         lim = read_limits(area)
         if lim is None:
@@ -199,7 +224,7 @@ def main():
 
     # theory curve on a fine grid (log-interp) so it's smooth across the gap
     fine = np.linspace(args.xmin, args.xmax, 400)
-    thy_fine = np.exp(np.interp(fine, masses_all, np.log(np.array(theory_all) * THEORY_KFACTOR)))
+    thy_fine = np.array([_logext(theory_all, f) * THEORY_KFACTOR for f in fine])
 
     plt.style.use(hep.style.CMS)
     fig, ax = plt.subplots()
