@@ -1,6 +1,6 @@
 # Staged unblinding plan — tight-WP 2024+2025 Z' → tt̄
 
-**Status: GATE 1 PASSED (all hard gates; 1.4 = documented deviation under ruling A). R2 postfit-projection review is the remaining pre-Gate-2 item.**
+**Status: GATE 1 CLOSED — all hard gates green, R2 review complete and clean. Gate 2 (observed limits) awaits Aritra's go after the R2 discussion.**
 
 This is the living checklist for unblinding. Maintained in-repo on the
 `unblinding` branch (`run3/unblinding/PLAN.md`); every gate's outcome is
@@ -148,3 +148,14 @@ suite on the changed model before a second unblinding attempt.
   projections (house extractor) + discussion; then draft + arm Gate-2
   observed-limit scripts. Harvest:
   `unblinding/gate1/gate1_gof_harvest_20260814.json`.
+- 2026-08-14 (night, +3): R2 COMPLETE. All 24 postfit channels rendered from
+  the house PostFit2DShapesFromWorkspace extraction of the Gate-1 fit
+  (artifacts: unblinding/gate1/postfit/). Projected-mtt per-channel
+  chi2/ndof = 0.05-0.80 (24/24 below 1); worst single-bin pull anywhere
+  -2.18 (Cen24 SR) — far from the 4-sigma trigger. Data/postfit integrals
+  agree at the per-mille-to-percent level in every channel incl. all four SR.
+  NOTE for the record: a naive Gaussian pull on RAW 2D bins produces fake
+  -8 "pulls" in sparse bins (data=0 vs small model with small sampled error)
+  — metric artifact, not physics; use projected bins or Poisson-aware
+  statistics. Gate 1 fully closed. Next: Aritra's go arms Gate 2 (observed
+  limits, scripts to be drafted with a GATE1-CLOSED interlock).
