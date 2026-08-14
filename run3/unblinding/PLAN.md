@@ -1,6 +1,6 @@
 # Staged unblinding plan — tight-WP 2024+2025 Z' → tt̄
 
-**Status: GATE 1 RUNNING (armed 2026-08-14 on Aritra's instruction after sign-off). Verdict pending.**
+**Status: GATE 1 PAUSED — hard gate 1.4 failed as written; forensics show a pre-existing blinded condition that SR data IMPROVE. GoF not run. Awaiting Aritra's ruling (options A/B in the decision log).**
 
 This is the living checklist for unblinding. Maintained in-repo on the
 `unblinding` branch (`run3/unblinding/PLAN.md`); every gate's outcome is
@@ -110,3 +110,21 @@ suite on the changed model before a second unblinding attempt.
   arming Gate 1; sub templates armed with GATE0-PASSED and submitted
   (armed copies committed alongside this entry). The SR enters a b-only
   likelihood for the first time. No signal quantity is computed at this gate.
+- 2026-08-14 (night): Gate-1 fit returned (cluster 85133122, 8 min).
+  RESULTS: 1.1 PASS (status 0, covQual 3, EDM 1.9e-7); 1.3 PASS (worst pull
+  q2 −1.45σ, improved from masked −1.60σ); 1.5 PASS (tightest constraint
+  0.48); R3 mild (ttbar_xsec −0.83σ→−1.35σ). **1.4 FAIL as written**:
+  QCD_Fwd24rpf_par2 = −47.2 ± 12.5 (within 5% of −50). FORENSICS: in the
+  FROZEN MASKED production fit both fwd par2 rail at exactly −50 with errors
+  79/67 (sidebands cannot constrain the x² curvature) — the condition
+  PRE-EXISTS unblinding and was never checked blind; opening the SR pulls
+  Fwd25 par2 fully off the bound (−27.0 ± 13.2) and Fwd24 mostly
+  (−47.2 ± 12.5), errors shrink 6×. Per the failure rule the GoF wave was
+  NOT launched. Options for Aritra: (A) record 1.4 as a documented deviation
+  (criterion targeted unblinding-induced pathology; condition is provably
+  blind-side and data relieve it; note the fwd-TF insensitivity of the
+  limits, 2x1≡2x0 medians) and resume Gate 1 (GoF + postfit); (B) treat as
+  model defect → widen fwd par2 range = post-unblinding model change
+  requiring blinded revalidation per the prime rule (note: ±50 was chosen
+  2026-07 to kill the −996 runaway mode). Claude recommends (A) with the
+  deviation prominently documented.
