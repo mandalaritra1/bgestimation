@@ -1,6 +1,6 @@
 # Staged unblinding plan — tight-WP 2024+2025 Z' → tt̄
 
-**Status: GATE 1 PAUSED — hard gate 1.4 failed as written; forensics show a pre-existing blinded condition that SR data IMPROVE. GoF not run. Awaiting Aritra's ruling (options A/B in the decision log).**
+**Status: GATE 1 RESUMED under ruling A (1.4 = documented deviation, pre-existing blinded railing that SR data improve). GoF wave running; verdict pending on 1.2.**
 
 This is the living checklist for unblinding. Maintained in-repo on the
 `unblinding` branch (`run3/unblinding/PLAN.md`); every gate's outcome is
@@ -128,3 +128,11 @@ suite on the changed model before a second unblinding attempt.
   requiring blinded revalidation per the prime rule (note: ±50 was chosen
   2026-07 to kill the −996 runaway mode). Claude recommends (A) with the
   deviation prominently documented.
+- 2026-08-14 (night, +1): Aritra rules **option A** — gate 1.4 recorded as a
+  documented deviation, not a failure of the background model: the bound
+  proximity is a blinded-side condition (both fwd par2 railed at −50 masked)
+  that the SR data relieve; the criterion's intent (catch unblinding-induced
+  TF pathology) is not met by this condition. DEVIATION STANDS IN THE RECORD:
+  any AN/paper text quoting Gate 1 must state that 1.4 as originally written
+  failed and why it was ruled benign. Gate 1 resumed: GoF wave (25×20 toys)
+  submitted.
