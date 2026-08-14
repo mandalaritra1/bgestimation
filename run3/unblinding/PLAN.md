@@ -1,6 +1,6 @@
 # Staged unblinding plan — tight-WP 2024+2025 Z' → tt̄
 
-**Status: GATE 2 RUNNING (armed 2026-08-14 on Aritra's go after the R2 review). 39 observed-limit jobs in flight. Excess protocol applies at harvest.**
+**Status: GATE 2 HARVESTED — 39/39 pass all gates. Excess protocol triggered at 6 points (3.5+4 TeV, all widths) and executed: +7.4 events (+0.81σ) in the 3–4 TeV SR window drives everything. Significance scan (pre-authorized) awaiting Aritra's word.**
 
 This is the living checklist for unblinding. Maintained in-repo on the
 `unblinding` branch (`run3/unblinding/PLAN.md`); every gate's outcome is
@@ -167,3 +167,19 @@ suite on the changed model before a second unblinding attempt.
   unchanged rMax ledger. At harvest: excursion table vs expected quantiles;
   any observed > q97.5 -> pre-registered excess protocol (width-coherence,
   mass-coherence, postfit window) BEFORE any significance.
+- 2026-08-15 (early): GATE 2 COMPLETE. 39/39 observed limits pass every
+  validator (observed + 5 ordered expected quantiles, headroom everywhere).
+  Band distribution: 18 within 1σ, 15 in 1–2σ (14 high / 1 low), 6 ABOVE the
+  97.5% quantile: w{1,10,30}_m{3500,4000}, obs/median 2.4–2.7. EXCESS
+  PROTOCOL EXECUTED: (i) width-coherence — present in all three widths
+  (expected for any data feature: shared events); (ii) mass-coherence —
+  peak at 3.5–4 TeV, elevated shoulder to 7 TeV (high-mass templates
+  integrate the same events via their in-window tails; the >4 TeV SR window
+  is EMPTY on both data and model sides); (iii) postfit window — the entire
+  effect is +7.4 events over 54.6 expected (pull +0.81σ) in the 3–4 TeV SR
+  window, dominated by Fwd24 (+6.5 over 38.5). Consistent with Gate 1
+  (GoF p = 0.104; worst SR bin −2.18σ): a mild coherent tail fluctuation,
+  no evidence of background mis-modeling. Overlay plots + harvest ledger:
+  unblinding/gate2/, attachments tightwp2425_gate2_observed_limits_w*.png
+  (INTERNAL until approvals). Next (plan-authorized, awaiting Aritra):
+  significance scan at the six protocol points only.
