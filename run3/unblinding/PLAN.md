@@ -1,6 +1,6 @@
 # Staged unblinding plan — tight-WP 2024+2025 Z' → tt̄
 
-**Status: GATE 1 RESUMED under ruling A (1.4 = documented deviation, pre-existing blinded railing that SR data improve). GoF wave running; verdict pending on 1.2.**
+**Status: GATE 1 PASSED (all hard gates; 1.4 = documented deviation under ruling A). R2 postfit-projection review is the remaining pre-Gate-2 item.**
 
 This is the living checklist for unblinding. Maintained in-repo on the
 `unblinding` branch (`run3/unblinding/PLAN.md`); every gate's outcome is
@@ -136,3 +136,15 @@ suite on the changed model before a second unblinding attempt.
   any AN/paper text quoting Gate 1 must state that 1.4 as originally written
   failed and why it was ruled benign. Gate 1 resumed: GoF wave (25×20 toys)
   submitted.
+- 2026-08-14 (night, +2): v2 fit rerun clean (cluster 30054746, deviation
+  recorded as warning); GoF wave 25/25 (clusters 30055252; round-1 wave in
+  failed_upstream_status/ refused the run-1 archive — fail-closed working as
+  designed). **GATE 1.2 PASS: saturated GoF on the unmasked data p = 0.104
+  ± 0.014** (observed 671.2 vs 500 toys, mean 628.4, range [519.7, 754.4]).
+  GATE 1 VERDICT: 1.1 PASS, 1.2 PASS, 1.3 PASS (worst q2 −1.45σ), 1.4
+  documented deviation (ruling A), 1.5 PASS. R1 not applicable (p ≥ 0.05).
+  R3 recorded (ttbar_xsec −0.83→−1.35σ, mild). The background model
+  describes the opened signal region. Remaining before Gate 2: R2 postfit
+  projections (house extractor) + discussion; then draft + arm Gate-2
+  observed-limit scripts. Harvest:
+  `unblinding/gate1/gate1_gof_harvest_20260814.json`.
