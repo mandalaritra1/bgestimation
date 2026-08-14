@@ -1,6 +1,6 @@
 # Staged unblinding plan — tight-WP 2024+2025 Z' → tt̄
 
-**Status: GATE 1 CLOSED — all hard gates green, R2 review complete and clean. Gate 2 (observed limits) awaits Aritra's go after the R2 discussion.**
+**Status: GATE 2 RUNNING (armed 2026-08-14 on Aritra's go after the R2 review). 39 observed-limit jobs in flight. Excess protocol applies at harvest.**
 
 This is the living checklist for unblinding. Maintained in-repo on the
 `unblinding` branch (`run3/unblinding/PLAN.md`); every gate's outcome is
@@ -159,3 +159,11 @@ suite on the changed model before a second unblinding attempt.
   — metric artifact, not physics; use projected bins or Poisson-aware
   statistics. Gate 1 fully closed. Next: Aritra's go arms Gate 2 (observed
   limits, scripts to be drafted with a GATE1-CLOSED interlock).
+- 2026-08-14 (night, +4): Aritra: "go! arm gate 2". Gate-2 machinery
+  authored on the frozen recipe (gate2_observed_limit_job.sh = fullsyst_
+  limit_v3 with the unmasked fit and the observed AsymptoticLimits leg;
+  validate_observed_limit.py extends the blinded validator with the observed
+  entry + headroom gate; GATE1-CLOSED interlock). 39 jobs submitted over the
+  unchanged rMax ledger. At harvest: excursion table vs expected quantiles;
+  any observed > q97.5 -> pre-registered excess protocol (width-coherence,
+  mass-coherence, postfit window) BEFORE any significance.
