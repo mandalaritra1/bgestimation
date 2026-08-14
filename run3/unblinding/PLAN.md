@@ -26,7 +26,7 @@ template-MC-stat nuisances; 10–15% high-mass signal absorption; w1 M7000
 | item | criterion | status |
 |---|---|---|
 | bgestimation frozen | commits `16f1811` + `1085d9a`, tag `blinded-freeze-20260814` | ☑ done 2026-08-14 |
-| push branch + tag + `unblinding` to origin | Aritra (needs credentials) | ☐ pending |
+| push branch + tag + `unblinding` to origin | Aritra (needs credentials) | ☑ done 2026-08-14 — origin has `cmslpc-el9` @1085d9a, `unblinding` @ba762da, tag `blinded-freeze-20260814` (pushed from the Mac clone via the new `lpc` remote; the Mac's ssh config was missing its github.com block) |
 | 2x0 injection spot check (w1 m2000 + m6000, bkg/half/one/two) | same gates as the validation campaign: per-fit status ∈ {0,1}, covQual ≥ 2, EDM ≤ 0.1; three-start agreement Δr < 0.1σ, ΔNLL < 0.02; bkg closure \|r̂\| < 0.1σ; recovery within the established envelope (≥ 0.95 at 2 TeV, 0.80–0.95 at 6 TeV) | ☑ **PASS 8/8** (2026-08-14, cluster 85129252): closure exact; recovery 0.981–0.984 (2 TeV) / 0.824–0.865 (6 TeV); Δr/σ ≤ 0.014, ΔNLL ≤ 9e-4; all fits status 0 covQual 3; m6000_two EDM 0.129 = documented noise floor. Ledger: `finegrid/state/injection_spot_2x0_20260814_corrected.json` (v1 spot-harvest σ had a falsy-zero MINOS bug — corrected σ = max(parabolic, MINOS)) |
 | supervisor sign-off | show validation deck + the three fine-grid curves; explicit OK to open the SR | ☐ pending |
 
