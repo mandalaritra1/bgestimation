@@ -1,0 +1,6 @@
+gate2_significance 1 3500 0.02
+gate2_significance 1 4000 0.02
+gate2_significance 10 3500 0.05
+gate2_significance 10 4000 0.05
+gate2_significance 30 3500 0.1
+gate2_significance 30 4000 0.1
