@@ -20,8 +20,21 @@ parser.add_argument('--senario', '--scenario', dest='senario', choices=['RSGluon
 parser.add_argument('--signal', help='Specify a single signal to process (e.g., RSGluon2000).')
 parser.add_argument('--senario_fit', '--scenario-fit', dest='senario_fit', choices=['RSGluon', 'ZPrime'], help='Specify the signal scenario to process the fit: RSGluon or ZPrime.')
 parser.add_argument('--tf', type=str, help="TF in case of Ftest study")
-parser.add_argument('--study',choices=['ftest', 'limit', 'fit', 'plot', 'all'], default = 'all', type=str, help="running ttbar for specific study.")
-parser.add_argument('--rInit', type=float, default=0.0, help="Initial signal-strength value passed to Combine FitDiagnostics. Default 0: starting from r=1 caused fit failures.")
+parser.add_argument(
+    '--study',
+    choices=['workspace', 'ftest', 'limit', 'fit', 'plot', 'all'],
+    default='all',
+    type=str,
+    help=(
+        "running ttbar for a specific study; 'workspace' builds the base "
+        "workspace and signal card without fitting observed data"
+    ),
+)
+parser.add_argument(
+    '--rInit', type=float, default=0.0,
+    help=("Deprecated compatibility option. The FitDiagnostics start is fixed "
+          "to r=0 for every mass; tune --rMax, not the initial r value.")
+)
 parser.add_argument('--rMin', type=float, default=0.0, help="Minimum signal-strength range passed to Combine FitDiagnostics. Default 0: allowing r<0 caused fit failures (negative-QCD-like instabilities).")
 parser.add_argument('--rMax', type=float, default=6.0, help="Maximum signal-strength range passed to Combine FitDiagnostics.")
 parser.add_argument('--floor-qcd', dest='floor_qcd', action='store_true',
@@ -247,6 +260,12 @@ def get_transfer_function(cat):
 def process_signals(signals, study):
     """Process the given list of signals."""
     for sig in signals:
+      if study == 'workspace':
+        twoD = TwoDAlphabet(savedirname, json_file, loadPrevious=True)
+        signame = signal_name(sig)
+        subset = twoD.ledger.select(_select_signal, signame)
+        twoD.MakeCard(subset, signame + '_area')
+        continue
       if study == 'all' or study == 'ftest':
         ML_fit(sig)
         plot_fit(sig)
@@ -394,7 +413,14 @@ _rpf_options = {
 
 
     
-rinit = args.rInit
+# 2DAlphabet's MLfit API always injects an initial r value. Keep that numerical
+# start identical at every mass; only the allowed scan range may be adapted.
+rinit = 0.0
+if args.rInit != rinit:
+    print(
+        "[rInit] ignoring requested value {}: using the fixed mass-independent "
+        "start r=0; adjust --rMax instead".format(args.rInit)
+    )
 rmin = args.rMin
 rmax = args.rMax
 extra='--robustFit=1'
@@ -612,6 +638,9 @@ def perform_limit(signal):
     # absent). 'rpf' (re.search) matches every TF parameter.
     params_to_set = twoD.GetParamsOnMatch('rpf', 'ttbar-{}_area'.format(signal_tag(signal)), 'b')
     params_to_set = {k:v['val'] for k,v in params_to_set.items()}
+    # Seed only the fitted transfer-function parameters. Do not inject an
+    # initial signal strength into the AsymptoticLimits call; adapt only its
+    # allowed r range.
 
     signame = signal_name(signal)
     print('Performing limit for %s' % signame)
@@ -626,7 +655,14 @@ def perform_limit(signal):
         blindData=False,
         verbosity=0,
         setParams=params_to_set,
-        condor=False
+        condor=False,
+        # The adaptive campaign ranges must reach AsymptoticLimits as well as
+        # FitDiagnostics.  Without this, every retry silently reused Combine's
+        # default r range and high-sensitivity points returned only an observed
+        # entry (no expected quantiles).
+        extra='--rMin {rmin} --rMax {rmax} --rRelAcc 0.005 --rAbsAcc 1e-7'.format(
+            rmin=rmin, rmax=rmax
+        )
     )
         
         

@@ -7,7 +7,7 @@ fully under our control (no TGraph SetLimits quirks).
 
 Usage (run in twoD-env on the remote):
   python plot_limits_mpl.py --year 2024 --signal ZPrime --width 1 --blind True \
-      --output limits --xmin 1 --xmax 6
+      --output limits --xmin 1.2 --xmax 6
 """
 import os, glob, json, argparse
 import numpy as np
@@ -35,11 +35,39 @@ THEORY_KFACTOR = 1.0
 # an inconsistency that mis-placed the exclusion crossing.)
 SIGREF_PB = 1.0
 
-GREEN  = "#607641"   # 68% band (matches ROOT version)
-YELLOW = "#F5BB54"   # 95% band
+GREEN  = "#228b22"   # 68% expected band
+YELLOW = "#ffcc00"   # 95% expected band
 
 # 5 expected quantiles we expect from AsymptoticLimits
 Q = {"m2": 0.025, "m1": 0.16, "med": 0.5, "p1": 0.84, "p2": 0.975}
+
+
+def validate_expected_band(limit_values, mass_tev, min_gap_fraction):
+    """Reject incomplete or numerically collapsed expected-limit bands."""
+    keys = ("m2", "m1", "med", "p1", "p2")
+    missing = [key for key in keys if key not in limit_values]
+    if missing:
+        raise RuntimeError(
+            f"{mass_tev:g} TeV: missing expected quantiles {missing}"
+        )
+    values = np.asarray([limit_values[key] for key in keys], dtype=float)
+    if not np.all(np.isfinite(values)) or np.any(values <= 0):
+        raise RuntimeError(
+            f"{mass_tev:g} TeV: expected quantiles are not finite and positive: "
+            f"{values.tolist()}"
+        )
+    gaps = np.diff(values)
+    if np.any(gaps <= 0):
+        raise RuntimeError(
+            f"{mass_tev:g} TeV: expected quantiles are not strictly ordered: "
+            f"{values.tolist()}"
+        )
+    relative_gaps = gaps / values[2]
+    if np.any(relative_gaps < min_gap_fraction):
+        raise RuntimeError(
+            f"{mass_tev:g} TeV: expected band is numerically collapsed; "
+            f"adjacent gaps / median = {relative_gaps.tolist()}"
+        )
 
 
 def _parse_limit_arrays(quantiles, mus):
@@ -136,7 +164,9 @@ def main():
     ap.add_argument("--output", default="limits")
     ap.add_argument("--xmin", type=float, default=1.0)
     ap.add_argument("--xmax", type=float, default=6.0)
-    ap.add_argument("--lumi", type=float, default=109.95)
+    ap.add_argument("--lumi", type=float, default=None,
+                    help="Integrated luminosity in fb^-1. Defaults to 220.54 for "
+                         "--year 2425 and 109.95 otherwise.")
     ap.add_argument("--com", type=float, default=13.6)
     ap.add_argument("--limit-dir", default="output/cards_combined_24",
                     help="directory holding the per-mass <signame>_area/ combine outputs")
@@ -145,8 +175,14 @@ def main():
                          "use with templates scaled so r=1<->expected); 'theory'=r*theory "
                          "(use with templates scaled so r=1<->theory); 'onepb'=r*ref-pb.")
     ap.add_argument("--ref-pb", type=float, default=1.0,
-                    help="Reference xsec in pb for --norm onepb (r=1<->ref-pb). Use 0.001 "
-                         "for the 10/30 templates scaled so r=1<->1 fb.")
+                    help="Reference xsec in pb for --norm onepb (r=1<->ref-pb). "
+                         "The v1 2024+2025 cards use 1.0 pb for every width.")
+    ap.add_argument("--min-band-gap-fraction", type=float, default=0.01,
+                    help="Fail if any adjacent expected-quantile gap is smaller than "
+                         "this fraction of the median (default: 0.01).")
+    ap.add_argument("--allow-nonstandard-normalization", action="store_true",
+                    help="Allow a 2425 plot whose normalization is not the v1 "
+                         "r=1 <-> 1 pb convention.")
     ap.add_argument("--overlay-theory-json", default=None,
                     help="Optional SECOND theory curve to overlay (e.g. topcolor "
                          "overlay_pure_topcolor.json). Read [<signal><width>]['theory']. "
@@ -164,6 +200,16 @@ def main():
     ap.add_argument("--theory-label", default=None,
                     help="Legend label for the primary theory curve (overrides the default).")
     args = ap.parse_args()
+    if args.lumi is None:
+        args.lumi = 220.54 if str(args.year) == "2425" else 109.95
+    if (str(args.year) == "2425" and
+            (args.norm != "onepb" or not np.isclose(args.ref_pb, 1.0)) and
+            not args.allow_nonstandard_normalization):
+        raise RuntimeError(
+            "The v1 2024+2025 cards use r=1 <-> 1 pb. Pass --norm onepb "
+            "--ref-pb 1.0, or explicitly opt into a nonstandard study with "
+            "--allow-nonstandard-normalization."
+        )
     blind = str(args.blind).lower() in ("true", "1", "yes")
 
     xs = json.load(open("jsons/signal_xs.json"))[args.signal + args.width]
@@ -188,7 +234,13 @@ def main():
         mm = _re.match(r"signal%s(\d+)%s_area$" % (args.signal, tag), os.path.basename(d))
         if mm:
             found.add(int(mm.group(1)) / 1000.0)
-    scan = sorted(set(masses_all) | found)
+    # Treat the displayed x range as the reporting domain, not just a viewport
+    # crop. This prevents excluded hypotheses from contributing hidden band
+    # interpolation or spurious low-mass crossing messages.
+    scan = [
+        mass for mass in sorted(set(masses_all) | found)
+        if args.xmin <= mass <= args.xmax
+    ]
     _ma = np.array(masses_all, dtype=float)
 
     def _logext(grid_vals, mass):
@@ -209,25 +261,34 @@ def main():
         lim = read_limits(area)
         if lim is None:
             print("skip {:.3g} TeV: no limit output".format(mass)); continue
+        validate_expected_band(lim, mass, args.min_band_gap_fraction)
         # mu -> sigma*B via the reference xsec that r=1 corresponds to for these cards.
         norm = {"expected": exp, "theory": th * THEORY_KFACTOR, "onepb": args.ref_pb}[args.norm]
         m.append(mass)
         med.append(lim["med"] * norm)
-        lo68.append(lim.get("m1", lim["med"]) * norm)
-        hi68.append(lim.get("p1", lim["med"]) * norm)
-        lo95.append(lim.get("m2", lim["med"]) * norm)
-        hi95.append(lim.get("p2", lim["med"]) * norm)
+        lo68.append(lim["m1"] * norm)
+        hi68.append(lim["p1"] * norm)
+        lo95.append(lim["m2"] * norm)
+        hi95.append(lim["p2"] * norm)
         thy.append(th * THEORY_KFACTOR)
         if not blind and "obs" in lim:
             obs.append(lim["obs"] * norm)
     m = np.array(m)
+    if len(m) == 0:
+        raise RuntimeError(
+            "no valid limit points in reporting range [{}, {}] TeV".format(
+                args.xmin, args.xmax
+            )
+        )
+    print("reporting masses [TeV]:", ", ".join("{:g}".format(x) for x in m))
 
     # theory curve on a fine grid (log-interp) so it's smooth across the gap
     fine = np.linspace(args.xmin, args.xmax, 400)
     thy_fine = np.array([_logext(theory_all, f) * THEORY_KFACTOR for f in fine])
 
-    plt.style.use(hep.style.CMS)
-    fig, ax = plt.subplots()
+    hep.style.use(hep.style.CMS)
+    fig, ax = plt.subplots(layout="constrained")
+    fig.get_layout_engine().set(rect=(0.0, 0.04, 1.0, 0.96))
     sig_tex = {"RSGluon": r"g_{KK}", "ZPrime": r"Z'", "ZPrime_DM": r"Z_{DM}"}[args.signal]
 
     ax.fill_between(m, lo95, hi95, color=YELLOW, label="95% expected", zorder=1)
@@ -253,11 +314,25 @@ def main():
 
     ax.set_yscale("log")
     ax.set_xlim(args.xmin, args.xmax)
-    ax.set_ylim(1e-4, 1e4)
+    visible_max = max(float(np.max(hi95)), float(np.max(thy_fine)))
+    if obs:
+        visible_max = max(visible_max, float(np.max(obs)))
+    visible_min = min(float(np.min(lo95)), float(np.min(thy_fine)))
+    if obs:
+        visible_min = min(visible_min, float(np.min(obs)))
+    # Keep the established 1e-4 floor unless a displayed curve genuinely falls
+    # below it (the 1%-width theory prediction does so near 6 TeV).  In that case,
+    # open exactly enough logarithmic headroom to avoid clipping the curve.
+    lower_bound = min(1e-4, 10 ** np.floor(np.log10(0.8 * visible_min)))
+    ax.set_ylim(lower_bound, 10 ** np.ceil(np.log10(3.0 * visible_max)))
+    major_xticks = [args.xmin] + list(
+        range(int(np.ceil(args.xmin)), int(np.floor(args.xmax)) + 1)
+    )
+    ax.set_xticks(sorted(set(major_xticks)))
     ax.set_xlabel(r"$m_{%s}$ [TeV]" % sig_tex)
     ax.set_ylabel(r"$\sigma \times B(%s \to t\bar{t})$ [pb]" % sig_tex)
     ax.legend(loc="upper right", title="95% CL upper limits", fontsize=18)
-    hep.cms.label("Preliminary", data=True, lumi=args.lumi, com=args.com, ax=ax)
+    hep.cms.label("Preliminary", data=True, lumi=args.lumi, com=args.com, loc=2, ax=ax)
 
     if not args.no_stamp:
         stamp_figure(fig)
@@ -265,6 +340,27 @@ def main():
     base = os.path.join(args.output, "limits_{}{}_{}_mpl".format(args.signal, args.width, args.year))
     for ext in ("png", "pdf"):
         fig.savefig(base + "." + ext, bbox_inches="tight")
+    plt.close(fig)
+    with open(base + ".json", "w") as out:
+        json.dump({
+            "year": args.year,
+            "signal": args.signal,
+            "width_percent": args.width,
+            "reporting_range_tev": [args.xmin, args.xmax],
+            "mass_tev": m.tolist(),
+            "expected_median_pb": list(map(float, med)),
+            "expected_minus1sigma_pb": list(map(float, lo68)),
+            "expected_plus1sigma_pb": list(map(float, hi68)),
+            "expected_minus2sigma_pb": list(map(float, lo95)),
+            "expected_plus2sigma_pb": list(map(float, hi95)),
+            "theory_pb": list(map(float, thy)),
+            "observed_pb": list(map(float, obs)) if obs else None,
+            "limit_dir": args.limit_dir,
+            "normalization": args.norm,
+            "reference_pb": args.ref_pb,
+            "provenance": provenance_stamp(),
+        }, out, indent=2)
+        out.write("\n")
     print("saved", base + ".png / .pdf")
 
     # expected mass-limit crossing (median sigma vs theory)

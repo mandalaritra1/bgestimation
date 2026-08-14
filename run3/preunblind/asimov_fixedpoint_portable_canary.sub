@@ -1,0 +1,21 @@
+universe = vanilla
+initialdir = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811
+executable = /bin/bash
+arguments = asimov_fixedpoint_portable_job.sh 000 0
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/asimov_fixedpoint_w1_m2000_idx000.out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/asimov_fixedpoint_w1_m2000_idx000.err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/asimov_fixedpoint_w1_m2000_idx000_condor.log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 4GB
+getenv = True
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/asimov_fixedpoint_portable_job.sh,/uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/validate_portable_asimov_fixedpoint.py,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/asimov_scan_payload_w1_m2000.tgz,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/workspace_runtime_overlay_20260811_v1.tgz
+transfer_output_files = asimov_fixedpoint_result.tgz
+transfer_output_remaps = "asimov_fixedpoint_result.tgz = asimov_scans/fixedpoint_results/w1_m2000_idx000.tgz"
+use_x509userproxy = false
+
+queue 1

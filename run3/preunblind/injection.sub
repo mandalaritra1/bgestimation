@@ -1,0 +1,17 @@
+universe = vanilla
+executable = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/injection_job.sh
+arguments = $(width) $(mass) $(rmax) $(label) $(rinject) $(startzero) $(startinjected) $(starthalfmax)
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/injection_w$(width)_m$(mass)_$(label).out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/injection_w$(width)_m$(mass)_$(label).err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/injection_condor.log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 5GB
+getenv = True
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+use_x509userproxy = false
+
+queue width,mass,rmax,label,rinject,startzero,startinjected,starthalfmax from /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/state/injection_matrix.tsv

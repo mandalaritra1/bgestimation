@@ -1,0 +1,21 @@
+universe = vanilla
+initialdir = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811
+executable = /bin/bash
+arguments = workspace_portable_job.sh $(category) $(width) $(mass)
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/workspace_portable_$(category)_w$(width)_m$(mass).out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/workspace_portable_$(category)_w$(width)_m$(mass).err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/workspace_portable_condor.log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 4GB
+getenv = True
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/workspace_portable_job.sh,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/workspace_payload_$(category)_w$(width)_m$(mass).tgz,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/workspace_runtime_overlay_20260811_v1.tgz
+transfer_output_files = workspace_result.tgz
+transfer_output_remaps = "workspace_result.tgz = workspaces/portable_results/$(category)_w$(width)_m$(mass).tgz"
+use_x509userproxy = false
+
+queue category,width,mass from /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/workspace_matrix.tsv

@@ -1,0 +1,22 @@
+universe = vanilla
+initialdir = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811
+executable = /bin/bash
+arguments = combine_theory_seed_allfloat_v4_job.sh $(mode) $(width) $(mass) $(rmax)
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_canary_v2/diagnostics/theory_seed_allfloat_v4/logs/w$(width)_m$(mass).out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_canary_v2/diagnostics/theory_seed_allfloat_v4/logs/w$(width)_m$(mass).err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_canary_v2/diagnostics/theory_seed_allfloat_v4/logs/condor.log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 4GB
+getenv = True
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/combine_theory_seed_allfloat_v4_job.sh,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_canary_v2/payloads/combine_payload_w1_m2000.tgz,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/workspace_runtime_overlay_20260811_v1.tgz
+transfer_output_files = theory_seed_allfloat_v4_result.tgz
+transfer_output_remaps = "theory_seed_allfloat_v4_result.tgz = fullsyst_canary_v2/diagnostics/theory_seed_allfloat_v4/w$(width)_m$(mass).tgz"
+use_x509userproxy = false
+
+queue mode,width,mass,rmax from /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/combine_theory_seed_allfloat_v4.tsv
+

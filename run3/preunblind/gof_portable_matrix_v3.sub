@@ -1,0 +1,21 @@
+universe = vanilla
+initialdir = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811
+executable = /bin/bash
+arguments = gof_portable_job_v2.sh $(width) $(mass) $(rmax) $(seed) 20
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_matrix_20260813/logs/gof_v3_w$(width)_m$(mass)_s$(seed).out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_matrix_20260813/logs/gof_v3_w$(width)_m$(mass)_s$(seed).err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_matrix_20260813/logs/gof_v3_condor.log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 4GB
+getenv = True
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/gof_portable_job_v2.sh,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/fullsyst_matrix_20260813/foundation_v2/payloads/gof_payload_w$(width)_m$(mass).tgz,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/workspace_runtime_overlay_20260811_v1.tgz
+transfer_output_files = gof_result.tgz
+transfer_output_remaps = "gof_result.tgz = fullsyst_matrix_20260813/gof/v3/w$(width)_m$(mass)_s$(seed)_n20.tgz"
+use_x509userproxy = false
+
+queue width,mass,rmax,seed from /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/gof_matrix_v2.tsv

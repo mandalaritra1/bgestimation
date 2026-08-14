@@ -16,6 +16,7 @@
 #   bash run3/combine_cards2425.sh           # 4 cores (default)
 
 NPROC="${NPROC:-4}"
+REPO_DIR="$PWD"
 
 UNBLIND="${UNBLIND:-0}"
 if [[ "$UNBLIND" == "1" ]]; then echo "*** UNBLINDED run (observed + expected) ***"; fi
@@ -88,12 +89,16 @@ process_signal() {
             ( cd "$area" && rm -f higgsCombine*.AsymptoticLimits.*.root higgsCombine_maskedBonly*.root && \
               combine -M MultiDimFit -d workspace.root -m 0 --rMin 0 --rMax ${RMAX} \
                 --setParameters r=0,${M_ON} --freezeParameters r,${M_FRZ} \
-                --cminDefaultMinimizerStrategy 0 --setParameterRanges 'rgx{.*rpf_par.*}=-50,50' \
-                --saveWorkspace -n _maskedBonly > mdf.log 2>&1 && \
+                --cminDefaultMinimizerStrategy 1 --cminPreScan --cminPreFit 1 \
+                --setParameterRanges 'rgx{.*rpf_par.*}=-50,50' \
+                --saveWorkspace --saveFitResult -n _maskedBonly > mdf.log 2>&1 && \
+              python "${REPO_DIR}/run3/validate_fit_result.py" \
+                multidimfit_maskedBonly.root --key fit_mdf --min-cov-qual 3 >> mdf.log 2>&1 && \
               combine -M AsymptoticLimits -d higgsCombine_maskedBonly.MultiDimFit.mH0.root \
                 --snapshotName MultiDimFit --run blind --bypassFrequentistFit -m 0 \
                 --setParameters ${M_OFF} --freezeParameters ${M_FRZ} \
-                --rMin 0 --rMax ${RMAX} --cminDefaultMinimizerStrategy 1 --rRelAcc 0.005 --rAbsAcc 1e-7 -v 0 )
+                --rMin 0 --rMax ${RMAX} --cminDefaultMinimizerStrategy 0 \
+                --rRelAcc 0.0005 --rAbsAcc 1e-9 -v 0 )
         fi
     } > "$log" 2>&1
 
@@ -104,10 +109,10 @@ process_signal() {
     fi
 }
 export -f process_signal
-export CEN_BASE FWD_BASE COMB_DIR FLOAT_TTAGSF RMAX UNBLIND
+export CEN_BASE FWD_BASE COMB_DIR FLOAT_TTAGSF RMAX UNBLIND REPO_DIR
 
 echo "Running ${NPROC} masses in parallel...  (WIDTH=${WIDTH}, FLOAT_TTAGSF=${FLOAT_TTAGSF}, UNBLIND=${UNBLIND})"
 printf '%s\n' $SIGNALS | xargs -P "$NPROC" -I{} bash -c 'process_signal "$@"' _ {}
 
 echo "DONE. Plot with:"
-echo "  python plot_limits_mpl.py --year 2425 --signal ZPrime --width ${WIDTH} --blind True --output limits --xmin 1 --xmax 6 --lumi 220.54 --com 13.6 --limit-dir ${COMB_DIR}"
+echo "  python plot_limits_mpl.py --year 2425 --signal ZPrime --width ${WIDTH} --blind True --output limits --xmin 1.2 --xmax 6 --lumi 220.54 --com 13.6 --norm onepb --ref-pb 1.0 --limit-dir ${COMB_DIR}"

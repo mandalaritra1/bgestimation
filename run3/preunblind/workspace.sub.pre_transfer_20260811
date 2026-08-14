@@ -1,0 +1,16 @@
+universe = vanilla
+executable = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/workspace_job.sh
+arguments = $(category) $(width) $(mass)
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/workspace_$(category)_w$(width)_m$(mass).out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/workspace_$(category)_w$(width)_m$(mass).err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/workspace_condor.log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 4GB
+getenv = True
+should_transfer_files = NO
+use_x509userproxy = false
+
+queue category,width,mass from /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/workspace_matrix.tsv

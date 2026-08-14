@@ -1,0 +1,34 @@
+# Reviewed full masked-GoF ensemble: ten independent 20-toy shards.  This is a
+# descriptor only; submit it explicitly after the current canary is accepted.
+universe = vanilla
+initialdir = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811
+executable = /bin/bash
+arguments = gof_portable_job.sh 1 2000 1 $(seed) 20
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/gof_portable_ensemble_200_seed$(seed).out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/gof_portable_ensemble_200_seed$(seed).err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/gof_portable_ensemble_200_seed$(seed).log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 4GB
+getenv = True
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/gof_portable_job.sh,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/gof_payload_w1_m2000.tgz,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/workspace_runtime_overlay_20260811_v1.tgz
+transfer_output_files = gof_result.tgz
+transfer_output_remaps = "gof_result.tgz = gof/portable_results/ensemble_200/w1_m2000_seed$(seed)_n20.tgz"
+use_x509userproxy = false
+
+queue seed from (
+314160
+314161
+314162
+314163
+314164
+314165
+314166
+314167
+314168
+314169
+)

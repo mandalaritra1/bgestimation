@@ -1,0 +1,21 @@
+universe = vanilla
+initialdir = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811
+executable = /bin/bash
+arguments = asimov_impacts_portable_job_v3.sh $(width) $(mass) $(rmax) $(rinject) $(nuisance)
+
+output = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/asimov_impacts_v3_w$(width)_m$(mass)_$(nuisance).out
+error = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/asimov_impacts_v3_w$(width)_m$(mass)_$(nuisance).err
+log = /uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/logs/asimov_impacts_v3_w$(width)_m$(mass)_$(nuisance)_condor.log
+
+request_cpus = 1
+request_memory = 4GB
+request_disk = 4GB
+getenv = True
+should_transfer_files = YES
+when_to_transfer_output = ON_EXIT
+transfer_input_files = /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/asimov_impacts_portable_job_v3.sh,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/asimov_impacts_payload_w$(width)_m$(mass)_v2.tgz,/uscms/home/amandal2/nobackup/bg_ttbar/preunblind_validation_20260811/payloads/workspace_runtime_overlay_20260811_v1.tgz
+transfer_output_files = asimov_impacts_result.tgz
+transfer_output_remaps = "asimov_impacts_result.tgz = asimov_impacts/portable_results/v3/w$(width)_m$(mass)_$(nuisance).tgz"
+use_x509userproxy = false
+
+queue width,mass,rmax,nuisance,rinject from /uscms/home/amandal2/nobackup/bg_ttbar/CMSSW_14_1_0_pre4/src/bgestimation/run3/preunblind/expected_impacts_ttbar_rescue_v3_queue.tsv
