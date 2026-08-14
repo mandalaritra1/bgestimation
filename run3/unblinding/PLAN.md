@@ -1,6 +1,6 @@
 # Staged unblinding plan — tight-WP 2024+2025 Z' → tt̄
 
-**Status: GATE 2 HARVESTED — 39/39 pass all gates. Excess protocol triggered at 6 points (3.5+4 TeV, all widths) and executed: +7.4 events (+0.81σ) in the 3–4 TeV SR window drives everything. Significance scan (pre-authorized) awaiting Aritra's word.**
+**Status: UNBLINDING COMPLETE (2026-08-15). All gates passed; excess protocol executed in full. Result: observed limits at 39 points; largest local significance 2.30σ (w1, 3.5 TeV) — consistent with a background fluctuation. See the decision log tail for the closing record.**
 
 This is the living checklist for unblinding. Maintained in-repo on the
 `unblinding` branch (`run3/unblinding/PLAN.md`); every gate's outcome is
@@ -183,3 +183,14 @@ suite on the changed model before a second unblinding attempt.
   unblinding/gate2/, attachments tightwp2425_gate2_observed_limits_w*.png
   (INTERNAL until approvals). Next (plan-authorized, awaiting Aritra):
   significance scan at the six protocol points only.
+- 2026-08-15: significance scan complete (cluster 3836977, six protocol
+  points only, hard-guarded): local significances 2.30/2.00 (w1 3500/4000),
+  2.24/2.21 (w10), 1.99/2.15 (w30); r-hat consistent (e.g. w10_m3500
+  0.0029 [0.0000, 0.0046] pb). With the trials factor over 13 masses x 3
+  (correlated) widths, the global significance is well below 2σ. CLOSING
+  RECORD: the tight-WP 2024+2025 all-hadronic Z'->ttbar search observes NO
+  significant excess; observed 95% CL limits at all 39 points, with a mild
+  coherent ~2σ-local excursion at 3.5-4 TeV traced to +7.4 events (+0.81σ
+  counting) in the 3-4 TeV SR window (Fwd24-dominated). All artifacts under
+  unblinding/ + attachments; every gate, deviation, and ruling is in this
+  log. UNBLINDING COMPLETE.
